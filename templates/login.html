@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - Communication_LTD</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h2>Login</h2>
+        </header>
+        <form method="post" class="form-login">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" class="form-control">
+            </div>
+            <button type="submit" class="btn">Login</button>
+            {% if get_flashed_messages() %}
+                <div class="error-messages">
+                    {% for message in get_flashed_messages() %}
+                        <textarea readonly class="error-message">{{ message }}</textarea>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </form>
+        <a href="{{ url_for('register') }}" class="link">Register</a>
+        <a href="{{ url_for('forgot_password') }}" class="link">Forgot Password?</a>
+    </div>
+</body>
+</html>

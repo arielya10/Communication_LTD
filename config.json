@@ -1,0 +1,17 @@
+{
+    "password_length": 10,
+    "password_complexity": {
+        "uppercase": true,
+        "lowercase": true,
+        "numbers": true,
+        "special_characters": true
+    },
+    "password_history": 3,
+    "dictionary_file": "dictionary.txt",
+    "login_attempts": 3,
+    "mail_server": "smtp.example.com",
+    "mail_port": 587,
+    "mail_use_tls": true,
+    "mail_username": "communication.Itd11@gmail.com",
+    "mail_password": "cyberproject"
+}
