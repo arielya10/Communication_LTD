@@ -9,9 +9,9 @@
     "password_history": 3,
     "dictionary_file": "dictionary.txt",
     "login_attempts": 3,
-    "mail_server": "smtp.example.com",
-    "mail_port": 587,
-    "mail_use_tls": true,
-    "mail_username": "communication.Itd11@gmail.com",
-    "mail_password": "cyberproject"
+    "MAIL_SERVER": " smtp-mail.outlook.com",
+    "MAIL_PORT": 587,
+    "MAIL_USE_TLS": true,
+    "MAIL_USERNAME": "communication.itd11@outlook.com",
+    "MAIL_PASSWORD": "Cyberproject11!"
 }

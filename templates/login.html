@@ -5,20 +5,23 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h2>Login</h2>
-        </header>
+    <div class="center">
+        <h1>Login</h1>
         <form method="post" class="form-login">
-            <div class="form-group">
+            <div class="txt_field">
+                <input type="text" id="username" name="username" required>
+                <span></span> <!-- Add this if you have a specific style for the span in your CSS -->
                 <label for="username">Username:</label>
-                <input type="text" id="username" name="username" class="form-control">
             </div>
-            <div class="form-group">
+            <div class="txt_field">
+                <input type="password" id="password" name="password" required>
+                <span></span> <!-- Add this if you have a specific style for the span in your CSS -->
                 <label for="password">Password:</label>
-                <input type="password" id="password" name="password" class="form-control">
             </div>
-            <button type="submit" class="btn">Login</button>
+            <div class="singup_link">
+                <a href="{{ url_for('forgot_password') }}">Forgot Password?</a>
+            </div>
+            <input type="submit" value="Sign In">
             {% if get_flashed_messages() %}
                 <div class="error-messages">
                     {% for message in get_flashed_messages() %}
@@ -27,8 +30,9 @@
                 </div>
             {% endif %}
         </form>
-        <a href="{{ url_for('register') }}" class="link">Register</a>
-        <a href="{{ url_for('forgot_password') }}" class="link">Forgot Password?</a>
+        <div class="singup_link">
+            <a href="{{ url_for('register') }}">Sign Up</a>
+        </div>
     </div>
 </body>
 </html>
