@@ -9,7 +9,7 @@
     "password_history": 3,
     "dictionary_file": "rockyou.txt",
     "login_attempts": 3,
-    "MAIL_SERVER": " smtp-mail.outlook.com",
+    "MAIL_SERVER": "smtp-mail.outlook.com",
     "MAIL_PORT": 587,
     "MAIL_USE_TLS": true,
     "MAIL_USERNAME": "communication.itd11@outlook.com",
