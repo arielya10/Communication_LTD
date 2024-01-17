@@ -27,6 +27,12 @@ body {
     color: #2691d9;
 }
 
+.center h3 {
+    text-align: center;
+    padding: 0 0 20px 0;
+    color: #2691d9;
+}
+
 form {
     padding: 0 40px 40px 40px;
     box-sizing: border-box;
