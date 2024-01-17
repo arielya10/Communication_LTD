@@ -35,6 +35,8 @@ class User(db.Model):
     previous_password_2 = db.Column(db.String(60), nullable=True)
     previous_password_3 = db.Column(db.String(60), nullable=True)  
     login_attempts = db.Column(db.Integer, default=0)
+    must_reset_password = db.Column(db.Boolean, default=False)
+
     
     def __repr__(self):
         return f"User('{self.username}', '{self.email}')"
@@ -54,9 +56,8 @@ def complexity_checks(user, new_password, update=False):
     if complexity['special_characters'] and not re.search(r'[!@#$%^&*(),.?":{}|<>]', new_password):
         return False, 'Password must contain a special character.'
 
-    # Dictionary check
     try:
-        with open(config['dictionary_file'], 'r') as file:
+        with open(config['dictionary_file'], 'r', encoding='utf-8', errors='ignore') as file:
             dictionary = file.read().splitlines()
         if new_password in dictionary:
             return False, 'Password is too common. Please choose a different one.'
@@ -94,10 +95,17 @@ def login():
         user = User.query.filter_by(username=username).first()
         
         if user:
+
+            # Check if user must reset password
+            if user.must_reset_password:
+                flash('You must reset your password before logging in.', 'danger')
+                return render_template('login.html')
             
             # Check for failed login attempts
             if user.login_attempts >= config['login_attempts']:
-                flash('Account locked due to too many failed login attempts.', 'danger')
+                flash('Too many failed login attempts. Please reset your password.', 'danger')
+                user.must_reset_password = True
+                db.session.commit()
                 return render_template('login.html')
             
             # Validate user's password
@@ -232,6 +240,7 @@ def reset_password():
             return render_template('reset_password.html', email=email)
 
         user.password = generate_password_hash(new_password)
+        user.must_reset_password = False
         db.session.commit()
         flash('Your password has been reset successfully.', 'success')
         return redirect(url_for('login'))
