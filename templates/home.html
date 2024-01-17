@@ -7,7 +7,27 @@
 <body>
     <div class="center">
         <h1>Welcome to Communication_LTD</h1>
-        <!-- Additional content can go here -->
+        <h3>Password Changing Form</h3>
+    <form method="post">
+        <div class="txt_field">
+            <input type="password" id="current_password" name="current_password" required>
+            <label for="current_password">Current Password:</label>
+        </div>
+        <div class="txt_field">
+            <input type="password" id="new_password" name="new_password" required>
+            <label for="new_password">New Password:</label>
+        </div>
+        <input type="submit" value="Change Password">
+        {% if get_flashed_messages() %}
+        <div class="error-messages">
+            {% for message in get_flashed_messages() %}
+                <textarea readonly class="error-message">{{ message }}</textarea>
+            {% endfor %}
+        </div>
+    {% endif %}
+    </form>
+
     </div>
+    
 </body>
 </html>
