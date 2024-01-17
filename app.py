@@ -1,4 +1,4 @@
-from flask import Flask, render_template, url_for, redirect, request, flash
+from flask import Flask, render_template, url_for, redirect, request, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
@@ -116,6 +116,7 @@ def login():
             
             # Validate user's password
             elif check_password_hash(user.password, password):
+                session['username'] = user.username 
                 user.login_attempts = 0
                 db.session.commit()
                 return redirect(url_for('home'))
@@ -133,9 +134,25 @@ def login():
 
 
 # Home page route (after successful login)
-@app.route('/home')
+@app.route('/home', methods=['GET', 'POST'])
 def home():
+    if request.method == 'POST':
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        username = session.get('username')  
+        user = User.query.filter_by(username=username).first()
+        print("Debug Info: ", user.password, current_password)
+        if user and check_password_hash(user.password, current_password):
+            is_valid, message = complexity_checks(user, new_password, update=True)
+            if not is_valid:
+                flash(message, 'danger')
+            else:
+                flash('Password changed successfully', 'success')
+        else:
+            flash('Current password is incorrect', 'danger')
+
     return render_template('home.html')
+
 
 # User registration route
 @app.route('/register', methods=['GET', 'POST'])
