@@ -6,6 +6,8 @@ import re
 import hashlib
 import os
 from flask_mail import Mail, Message
+from datetime import datetime, timedelta
+
 
 
 # Initialize Flask application
@@ -36,6 +38,10 @@ class User(db.Model):
     previous_password_3 = db.Column(db.String(60), nullable=True)  
     login_attempts = db.Column(db.Integer, default=0)
     must_reset_password = db.Column(db.Boolean, default=False)
+    reset_token = db.Column(db.String(100), nullable=True)
+    reset_token_created_at = db.Column(db.DateTime, nullable=True)
+
+
 
     
     def __repr__(self):
@@ -110,7 +116,7 @@ def login():
             
             # Validate user's password
             elif check_password_hash(user.password, password):
-                user.login_attempts = 0  # Reset login attempts after successful login
+                user.login_attempts = 0
                 db.session.commit()
                 return redirect(url_for('home'))
             
@@ -186,6 +192,9 @@ def forgot_password():
             random_value = os.urandom(16)
             hash_object = hashlib.sha1(random_value)
             password_reset_token = hash_object.hexdigest()
+            user.reset_token = password_reset_token
+            user.reset_token_created_at = datetime.utcnow()
+            db.session.commit()
 
             # Placeholder for sending email - implement with your email sending logic
             msg = Message('Password Reset Request', sender=config['MAIL_USERNAME'], recipients=[email])
@@ -211,14 +220,15 @@ def verify_token():
     if request.method == 'POST':
         token = request.form.get('token')
 
-        # Here you should verify the token. 
-        # This is a placeholder logic. Replace it with your actual token verification logic.
-        if token == user.reset_token:
+        # Check if token is valid and not expired
+        token_age = datetime.utcnow() - user.reset_token_created_at
+        if token == user.reset_token and token_age <= timedelta(minutes=5):
             return redirect(url_for('reset_password', email=email))
         else:
-            flash('Invalid token.', 'danger')
+            flash('Invalid or expired token.', 'danger')
 
     return render_template('verify_token.html', email=email)
+
 
 @app.route('/reset-password', methods=['GET', 'POST'])
 def reset_password():
@@ -241,6 +251,7 @@ def reset_password():
 
         user.password = generate_password_hash(new_password)
         user.must_reset_password = False
+        user.login_attempts = 0
         db.session.commit()
         flash('Your password has been reset successfully.', 'success')
         return redirect(url_for('login'))
