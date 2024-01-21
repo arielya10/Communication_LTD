@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 # Initialize Flask application
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Replace with a real secret key
+app.secret_key = 'your_secret_key'  
 
 
 # Configuration for SQLAlchemy (using SQLite for simplicity)
@@ -48,7 +48,6 @@ class User(db.Model):
     def __repr__(self):
         return f"User('{self.username}', '{self.email}')"
     
-
 # hash password using HMAC and salt
 def hash_password_hmac(password, salt=None):
     if salt is None:
@@ -61,6 +60,7 @@ def hash_password_hmac(password, salt=None):
     password_hash = hmac.new(salt, password.encode('utf-8'), hashlib.sha256).digest()
     return password_hash, salt
 
+# Password complexity checks
 def complexity_checks(user, new_password, update=False):
     # Initial password length and pattern checks
     if len(new_password) < config['password_length']:
@@ -101,7 +101,6 @@ def complexity_checks(user, new_password, update=False):
 
     return True, ''
 
-
 # Login page route (main page)
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -138,8 +137,6 @@ def login():
     # Render login template
     return render_template('login.html')
 
-
-
 # Home page route (after successful login)
 @app.route('/home', methods=['GET', 'POST'])
 def home():
@@ -164,8 +161,6 @@ def home():
                 flash('Current password is incorrect', 'danger')
 
     return render_template('home.html')
-
-
 
 # User registration route
 @app.route('/register', methods=['GET', 'POST'])
@@ -210,83 +205,72 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html')
 
-
-@app.route('/forgot-password', methods=['GET', 'POST'])
-def forgot_password():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        user = User.query.filter_by(email=email).first()
-
-        if user:
-            # Generate a random value and SHA-1 hash it
-            random_value = os.urandom(16)
-            hash_object = hashlib.sha1(random_value)
-            password_reset_token = hash_object.hexdigest()
-            user.reset_token = password_reset_token
-            user.reset_token_created_at = datetime.utcnow()
-            db.session.commit()
-
-            # Placeholder for sending email - implement with your email sending logic
-            msg = Message('Password Reset Request', sender=config['MAIL_USERNAME'], recipients=[email])
-            msg.body = f'Your password reset token is: {password_reset_token}'
-            mail.send(msg)
-            flash('An email with the password reset token has been sent.', 'info')
-            return redirect(url_for('verify_token', email=email))  # Redirect to token verification
-        else:
-            flash('No account associated with this email.', 'danger')
-            return render_template('forgot_password.html')
-    
-    return render_template('forgot_password.html')
-
-@app.route('/verify-token', methods=['GET', 'POST'])
-def verify_token():
-    email = request.args.get('email')
-    user = User.query.filter_by(email=email).first()
-
-    if not user:
-        flash('Invalid request.', 'danger')
-        return redirect(url_for('login'))
+# Password recovery route
+@app.route('/password-recovery', methods=['GET', 'POST'])
+def password_recovery():
+    stage = request.args.get('stage', 'request')
+    email = request.args.get('email', None)
 
     if request.method == 'POST':
-        token = request.form.get('token')
+        email = request.form.get('email', email)
 
-        # Check if token is valid and not expired
-        token_age = datetime.utcnow() - user.reset_token_created_at
-        if token == user.reset_token and token_age <= timedelta(minutes=5):
-            return redirect(url_for('reset_password', email=email))
-        else:
-            flash('Invalid or expired token.', 'danger')
+        if stage == 'request':
+            # Logic for requesting password reset
+            user = User.query.filter_by(email=email).first()
+            if user:
+                # Generate a random value and SHA-1 hash it
+                random_value = os.urandom(16)
+                hash_object = hashlib.sha1(random_value)
+                password_reset_token = hash_object.hexdigest()
+                user.reset_token = password_reset_token
+                user.reset_token_created_at = datetime.utcnow()
+                db.session.commit()
 
-    return render_template('verify_token.html', email=email)
+                msg = Message('Password Reset Request', sender=config['MAIL_USERNAME'], recipients=[email])
+                msg.body = f'Your password reset token is: {password_reset_token}'
+                mail.send(msg)
+                flash('An email with the password reset token has been sent.', 'info')
+                return redirect(url_for('password_recovery', stage='verify', email=email))
+            else:
+                flash('No account associated with this email.', 'danger')
+
+        
+        elif stage == 'verify':
+            # Logic for verifying token
+            token = request.form.get('token')
+            user = User.query.filter_by(email=email).first()
+
+            if user and user.reset_token == token:
+                token_age = datetime.utcnow() - user.reset_token_created_at
+                if token_age <= timedelta(minutes=5):
+                    return redirect(url_for('password_recovery', stage='reset', email=email))
+                else:
+                    flash('Token has expired.', 'danger')
+            else:
+                flash('Invalid token.', 'danger')
+
+        elif stage == 'reset':
+            # Logic for resetting the password
+            new_password = request.form.get('new_password')
+            user = User.query.filter_by(email=email).first()
+
+            if user:
+                is_valid, message = complexity_checks(user, new_password, True)
+                if not is_valid:
+                    flash(message, 'danger')
+                    return render_template('password_recovery.html', stage=stage, email=email)
+
+                hashed_password, _ = hash_password_hmac(new_password, user.salt)
+                user.password = hashed_password
+                user.must_reset_password = False
+                user.login_attempts = 0
+                db.session.commit()
+
+                flash('Your password has been reset successfully.', 'success')
+                return redirect(url_for('login'))
 
 
-@app.route('/reset-password', methods=['GET', 'POST'])
-def reset_password():
-    email = request.args.get('email')
-    user = User.query.filter_by(email=email).first()
-
-    if not user:
-        flash('Invalid request.', 'danger')
-        return redirect(url_for('login'))
-
-    if request.method == 'POST':
-        username = user.username
-        new_password = request.form.get('new_password')
-
-        # Validate password complexity
-        is_valid, message = complexity_checks(user, new_password, True)
-        if not is_valid:
-            flash(message, 'danger')
-            return render_template('reset_password.html', email=email)
-
-        user.password = hash_password_hmac(new_password, user.salt)
-        user.must_reset_password = False
-        user.login_attempts = 0
-        db.session.commit()
-        flash('Your password has been reset successfully.', 'success')
-        return redirect(url_for('login'))
-
-    return render_template('reset_password.html', email=email)
+    return render_template('password_recovery.html', stage=stage, email=email)
 
 
 if __name__ == '__main__':
