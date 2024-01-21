@@ -1,4 +1,5 @@
 # Cyber Project
+Web application designed for secure communication and user management. It features user registration, login, password recovery, and change password functionalities. The application uses Flask for backend development and SQLAlchemy for database management, ensuring a robust and secure user experience.
 
 
 ## Features
