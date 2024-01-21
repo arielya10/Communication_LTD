@@ -1,6 +1,7 @@
 from flask import Flask, render_template, url_for, redirect, request, flash, session
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
+import hashlib
+import hmac
 import json
 import re
 import hashlib
@@ -40,12 +41,25 @@ class User(db.Model):
     must_reset_password = db.Column(db.Boolean, default=False)
     reset_token = db.Column(db.String(100), nullable=True)
     reset_token_created_at = db.Column(db.DateTime, nullable=True)
-
+    salt = db.Column(db.String(16), nullable=False)
 
 
     
     def __repr__(self):
         return f"User('{self.username}', '{self.email}')"
+    
+
+# hash password using HMAC and salt
+def hash_password_hmac(password, salt=None):
+    if salt is None:
+        # Generate a new salt
+        salt = os.urandom(16)
+    # Ensure that salt is bytes
+    if isinstance(salt, str):
+        salt = salt.encode('utf-8')
+    # Create HMAC hash of the password
+    password_hash = hmac.new(salt, password.encode('utf-8'), hashlib.sha256).digest()
+    return password_hash, salt
 
 def complexity_checks(user, new_password, update=False):
     # Initial password length and pattern checks
@@ -71,8 +85,8 @@ def complexity_checks(user, new_password, update=False):
         print(f"Dictionary file not found: {config['dictionary_file']}")
 
     # Check if the new password is valid (not used before)
-    new_password_hash = generate_password_hash(new_password)
-    if any(check_password_hash(old_password, new_password) for old_password in [user.password, user.previous_password_1, user.previous_password_2, user.previous_password_3] if old_password):
+    new_password_hash, _ = hash_password_hmac(new_password, user.salt)
+    if new_password_hash == user.password or new_password_hash == user.previous_password_1 or new_password_hash == user.previous_password_2 or new_password_hash == user.previous_password_3:
         return False, 'Password has been used before. Please choose a different one.'
 
     # Update password if requested
@@ -92,45 +106,38 @@ def complexity_checks(user, new_password, update=False):
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        
         # Get username and password from form
         username = request.form.get('username')
         password = request.form.get('password')
-    
-        # Non-Vulnerable SQL Query
-        user = User.query.filter_by(username=username).first()
-        
-        if user:
 
-            # Check if user must reset password
-            if user.must_reset_password:
-                flash('You must reset your password before logging in.', 'danger')
-                return render_template('login.html')
-            
-            # Check for failed login attempts
-            if user.login_attempts >= config['login_attempts']:
-                flash('Too many failed login attempts. Please reset your password.', 'danger')
-                user.must_reset_password = True
-                db.session.commit()
-                return render_template('login.html')
-            
-            # Validate user's password
-            elif check_password_hash(user.password, password):
-                session['username'] = user.username 
+        # Query the user by username
+        user = User.query.filter_by(username=username).first()
+
+        if user:
+            # Hash the provided password using the salt stored for this user
+            provided_password_hash, _ = hash_password_hmac(password, user.salt)
+
+            # Check if hashed password matches the one in the database
+            if provided_password_hash == user.password:
+                # Reset login attempts and update session information
                 user.login_attempts = 0
                 db.session.commit()
+                session['username'] = user.username
+
+                # Redirect to home page or dashboard after successful login
                 return redirect(url_for('home'))
-            
-            # Increment login attempts after failed login
+
             else:
+                # Increment login attempts after a failed login
                 user.login_attempts += 1
                 db.session.commit()
-                
+
         # Flash message for unsuccessful login
         flash('Login Unsuccessful. Please check username and password', 'danger')
-        
+
     # Render login template
     return render_template('login.html')
+
 
 
 # Home page route (after successful login)
@@ -139,19 +146,25 @@ def home():
     if request.method == 'POST':
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
-        username = session.get('username')  
+        username = session.get('username')
         user = User.query.filter_by(username=username).first()
-        print("Debug Info: ", user.password, current_password)
-        if user and check_password_hash(user.password, current_password):
-            is_valid, message = complexity_checks(user, new_password, update=True)
-            if not is_valid:
-                flash(message, 'danger')
+
+        if user:
+            # Hash the provided current password using the salt stored for this user
+            provided_current_password_hash, _ = hash_password_hmac(current_password, user.salt)
+
+            # Check if the hashed current password matches the one in the database
+            if provided_current_password_hash == user.password:
+                is_valid, message = complexity_checks(user, new_password, update=True)
+                if not is_valid:
+                    flash(message, 'danger')
+                else:
+                    flash('Password changed successfully', 'success')
             else:
-                flash('Password changed successfully', 'success')
-        else:
-            flash('Current password is incorrect', 'danger')
+                flash('Current password is incorrect', 'danger')
 
     return render_template('home.html')
+
 
 
 # User registration route
@@ -188,9 +201,9 @@ def register():
             flash(message, 'danger')
             return render_template('register.html',username=username, email=email)
         
-        # Hash the password and create the user
-        hashed_password = generate_password_hash(password)
-        new_user.password = hashed_password  # Set hashed password
+        # Hash the password with HMAC and a new salt
+        hashed_password, salt = hash_password_hmac(password)
+        new_user = User(username=username, email=email, password=hashed_password, salt=salt)
         db.session.add(new_user)
         db.session.commit()
         flash('Your account has been created! You are now able to log in', 'success')
@@ -266,7 +279,7 @@ def reset_password():
             flash(message, 'danger')
             return render_template('reset_password.html', email=email)
 
-        user.password = generate_password_hash(new_password)
+        user.password = hash_password_hmac(new_password, user.salt)
         user.must_reset_password = False
         user.login_attempts = 0
         db.session.commit()
