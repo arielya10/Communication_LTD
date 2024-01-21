@@ -19,7 +19,7 @@
                 <label for="password">Password:</label>
             </div>
             <div class="singup_link">
-                <a href="{{ url_for('forgot_password') }}">Forgot Password?</a>
+                <a href="{{ url_for('password_recovery') }}">Forgot Password?</a>
             </div>
             <input type="submit" value="Sign In">
             {% if get_flashed_messages() %}
