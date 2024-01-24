@@ -23,6 +23,7 @@ db = SQLAlchemy(app)  # Initialize SQLAlchemy with app configuration
 # Load configuration
 with open('config.json') as config_file:
     config = json.load(config_file)
+    #lalala
     for key, value in config.items():
         app.config[key] = value
     mail = Mail(app)  # Initialize Flask-Mail with app configuration
