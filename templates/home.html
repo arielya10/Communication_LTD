@@ -7,6 +7,7 @@
     <meta name="description" content="Password change page for Communication_LTD">
     <title>Home - Communication_LTD</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" sizes="16x16" href="{{ url_for('static', filename='images/favicon.png') }}">
 </head>
 
 <body>
@@ -15,34 +16,67 @@
             <div class="row justify-content-sm-center h-100">
                 <div class="col-xxl-6 col-xl-7 col-lg-8 col-md-9 col-sm-11">
                     <div class="text-center my-5">
+                        <img src="{{ url_for('static', filename='images/logo.png') }}"  alt="logo" width="150">
                         <h1>Welcome to Communication_LTD</h1>
                         <h3>Password Changing Form</h3>
                     </div>
                     <div class="card shadow">
                         <div class="card-body p-5">
                             <form method="post" class="needs-validation" novalidate="">
-                                <div class="mb-3">
-                                    <label for="current_password" class="form-label">Current Password:</label>
+                                <div class="mb-3" style="position: relative;">
+                                    <label for="current_password" class="text-muted">Current Password:</label>
                                     <input type="password" class="form-control" id="current_password" name="current_password" required>
+                                    <div class="btn btn-primary btn-sm" id="passeye-toggle-0" onclick="togglePasswordVisibility1()" 
+                                        style="position: absolute; right: 10px; top: 70%; transform: translateY(-50%); 
+                                                padding: 2px 7px; font-size: 12px; cursor: pointer;">
+                                        Show
+                                    </div>
                                 </div>
-                                <div class="mb-3">
+                                <div class="mb-3" style="position: relative;">
                                     <label for="new_password" class="form-label">New Password:</label>
                                     <input type="password" class="form-control" id="new_password" name="new_password" required>
+                                    <div class="btn btn-primary btn-sm" id="passeye-toggle-1" onclick="togglePasswordVisibility2()" 
+                                        style="position: absolute; right: 10px; top: 70%; transform: translateY(-50%); 
+                                            padding: 2px 7px; font-size: 12px; cursor: pointer;">
+                                        Show
+                                    </div>
                                 </div>
                                 <div class="d-grid">
                                     <input type="submit" class="btn btn-primary" value="Change Password">
                                 </div>
 
                                 <!-- Flash messages -->
-                                {% if get_flashed_messages() %}
-                                    <div class="mt-3">
-                                        {% for message in get_flashed_messages() %}
-                                            <div class="alert alert-danger" role="alert">
+                                {% with messages = get_flashed_messages(with_categories=true) %}
+                                    {% if messages %}
+                                        {% for category, message in messages %}
+                                            <div class="alert alert-{{ category }} mt-3">
                                                 {{ message }}
                                             </div>
                                         {% endfor %}
-                                    </div>
-                                {% endif %}
+                                    {% endif %}
+                                {% endwith %}
+                                <script>
+                                    function togglePasswordVisibility1() {
+                                        var x = document.getElementById("current_password");
+                                        if (x.type === "password") {
+                                            x.type = "text";
+                                            document.getElementById("passeye-toggle-0").innerHTML = "Hide";
+                                        } else {
+                                            x.type = "password";
+                                            document.getElementById("passeye-toggle-0").innerHTML = "Show";
+                                        }
+                                    }
+                                    function togglePasswordVisibility2() {
+                                        var x = document.getElementById("new_password");
+                                        if (x.type === "password") {
+                                            x.type = "text";
+                                            document.getElementById("passeye-toggle-1").innerHTML = "Hide";
+                                        } else {
+                                            x.type = "password";
+                                            document.getElementById("passeye-toggle-1").innerHTML = "Show";
+                                        }
+                                    }
+                                </script>
                             </form>
                         </div>
                     </div>
