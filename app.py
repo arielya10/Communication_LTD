@@ -43,6 +43,14 @@ class User(db.Model):
     reset_token_created_at = db.Column(db.DateTime, nullable=True)
     salt = db.Column(db.String(16), nullable=False)
 
+class Customer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    lastname = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    username = db.Column(db.Integer, nullable=False)  
+    
+
 
     
     def __repr__(self):
@@ -101,6 +109,28 @@ def complexity_checks(user, new_password, update=False):
 
     return True, ''
 
+def validate_customer_input(id,name,lastname,email):
+    # ID validation
+    if not id.isdigit():
+        return False, 'Invalid ID format.'
+
+    # name validation 
+    if not name.isalpha():
+        return False, 'Invalid name format.'
+
+    # last name validation 
+    if not lastname.isalpha():
+        return False, 'Invalid last name format.'
+
+    # email format validation 
+    email_pattern = re.compile(r'^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$')
+    if not re.match(email_pattern, email):
+        return False, 'Invalid email format.'
+
+    
+    return True, ''
+
+
 # Login page route (main page)
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -137,6 +167,7 @@ def login():
     # Render login template
     return render_template('login.html')
 
+
 # Home page route (after successful login)
 @app.route('/home', methods=['GET', 'POST'])
 def home():
@@ -161,6 +192,40 @@ def home():
                 flash('Current password is incorrect', 'danger')
 
     return render_template('home.html')
+
+@app.route('/add_customer', methods=['GET', 'POST'])
+def add_customer():
+    if request.method == 'POST':
+        # Get details from the form
+        id = request.form.get('id')
+        name = request.form.get('name')
+        lastname = request.form.get('lastname')
+        email = request.form.get('email')
+        username=session.get('username')
+
+        # Check if all fields are filled 
+        if not (id and name and lastname and email):
+            flash('All fields are required.', 'danger')
+            return render_template('add_customer.html')
+        # validate customer input
+        is_valid, error_message = validate_customer_input(id, name, lastname, email)
+        if not is_valid:
+            flash(error_message, 'danger')
+            return render_template('add_customer.html')
+        # Check if the customer already exist in the database
+        existing_customer=Customer.query.filter_by(id=id).first()
+        if existing_customer:
+            flash(f'Customer with ID {id} already exists.', 'danger')
+
+        else:
+            # Create New Customer instance
+            new_customer=Customer(id=id,name=name,lastname=lastname,email=email,username=username)
+            db.session.add(new_customer)
+            db.session.commit()
+            flash(f'Customer "{name} {lastname}" has been added successfully.', 'info')
+   
+    return render_template('add_customer.html')
+
 
 # User registration route
 @app.route('/register', methods=['GET', 'POST'])
@@ -275,3 +340,4 @@ def password_recovery():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
