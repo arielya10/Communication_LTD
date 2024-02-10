@@ -1,5 +1,6 @@
 from flask import Flask, render_template, url_for, redirect, request, flash, session
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.sql import text
 import hashlib
 import hmac
 import json
@@ -109,6 +110,7 @@ def complexity_checks(user, new_password, update=False):
 
     return True, ''
 
+# Validate customer input
 def validate_customer_input(id,name,lastname,email):
     # ID validation
     if not id.isdigit():
@@ -129,7 +131,6 @@ def validate_customer_input(id,name,lastname,email):
 
     
     return True, ''
-
 
 # Login page route (main page)
 @app.route('/', methods=['GET', 'POST'])
@@ -167,6 +168,30 @@ def login():
     # Render login template
     return render_template('login.html')
 
+#vulnerable login page route (main page)
+@app.route('/vulnerable_login', methods=['GET', 'POST'])
+def vulnerable_login():
+    if request.method == 'POST':
+        # Get username and password from form
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        sql = f"SELECT * FROM user WHERE username = '{username}' AND password = '{password}'"
+
+        # Execute raw SQL query using text()
+        with db.engine.connect() as conn:
+            result = conn.execute(text(sql))
+            user = result.fetchone()
+
+        if user:
+            # Logic after successful login
+            session['username'] = username
+            return redirect(url_for('home'))
+        else:
+            # Flash message for unsuccessful login
+            flash('Login Unsuccessful. Please check username and password', 'danger')
+
+    return render_template('login.html')
 
 # Home page route (after successful login)
 @app.route('/home', methods=['GET', 'POST'])
@@ -193,6 +218,7 @@ def home():
 
     return render_template('home.html')
 
+# add customer route
 @app.route('/add_customer', methods=['GET', 'POST'])
 def add_customer():
     if request.method == 'POST':
@@ -225,7 +251,6 @@ def add_customer():
             flash(f'Customer "{name} {lastname}" has been added successfully.', 'info')
    
     return render_template('add_customer.html')
-
 
 # User registration route
 @app.route('/register', methods=['GET', 'POST'])
