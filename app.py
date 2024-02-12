@@ -197,24 +197,48 @@ def vulnerable_login():
 @app.route('/home', methods=['GET', 'POST'])
 def home():
     if request.method == 'POST':
-        current_password = request.form.get('current_password')
-        new_password = request.form.get('new_password')
-        username = session.get('username')
-        user = User.query.filter_by(username=username).first()
+        if 'current_password' in request.form and 'new_password' in request.form:
+            # Change Password functionality
+            current_password = request.form.get('current_password')
+            new_password = request.form.get('new_password')
+            username = session.get('username')
+            user = User.query.filter_by(username=username).first()
 
-        if user:
-            # Hash the provided current password using the salt stored for this user
-            provided_current_password_hash, _ = hash_password_hmac(current_password, user.salt)
-
-            # Check if the hashed current password matches the one in the database
-            if provided_current_password_hash == user.password:
-                is_valid, message = complexity_checks(user, new_password, update=True)
-                if not is_valid:
-                    flash(message, 'danger')
+            if user:
+                provided_current_password_hash, _ = hash_password_hmac(current_password, user.salt)
+                if provided_current_password_hash == user.password:
+                    is_valid, message = complexity_checks(user, new_password, True)
+                    if not is_valid:
+                        flash(message, 'danger')
+                    else:
+                        # Update the user's password here
+                        flash('Password changed successfully', 'success')
                 else:
-                    flash('Password changed successfully', 'success')
+                    flash('Current password is incorrect', 'danger')
+
+        elif 'id' in request.form and 'name' in request.form:
+            # Add Customer functionality
+            id = request.form.get('id')
+            name = request.form.get('name')
+            lastname = request.form.get('lastname')
+            email = request.form.get('email')
+            username = session.get('username')
+
+            if not (id and name and lastname and email):
+                flash('All fields are required.', 'danger')
             else:
-                flash('Current password is incorrect', 'danger')
+                is_valid, error_message = validate_customer_input(id, name, lastname, email)
+                if not is_valid:
+                    flash(error_message, 'danger')
+                else:
+                    existing_customer = Customer.query.filter_by(id=id).first()
+                    if existing_customer:
+                        flash(f'Customer with ID {id} already exists.', 'danger')
+                    else:
+                        new_customer = Customer(id=id, name=name, lastname=lastname, email=email, username=username)
+                        db.session.add(new_customer)
+                        db.session.commit()
+                        flash(f'Customer "{name} {lastname}" has been added successfully.', 'info')
 
     return render_template('home.html')
 
@@ -294,6 +318,29 @@ def register():
         flash('Your account has been created! You are now able to log in', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
+
+# Vulnerable user registration route
+@app.route('/vulnerable_register', methods=['GET', 'POST'])
+def vulnerable_register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+
+        sql = "INSERT INTO user (username, email, password) VALUES ('{}', '{}', '{}')".format(username, email, password)
+
+        try:
+            with db.engine.begin() as conn:  
+                conn.execute(text(sql))
+            flash('Your account has been created! You are now able to log in', 'success')
+            return redirect(url_for('login'))
+        except Exception as e:
+            flash(f'An error occurred: {e}', 'danger')
+
+    return render_template('register.html')
+
+
+
 
 # Password recovery route
 @app.route('/password-recovery', methods=['GET', 'POST'])
