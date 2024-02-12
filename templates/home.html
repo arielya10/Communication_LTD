@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="author" content="Your Name">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Password change page for Communication_LTD">
+    <meta name="description" content="Home page with password change and add customer functionality for Communication_LTD">
     <title>Home - Communication_LTD</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" sizes="16x16" href="{{ url_for('static', filename='images/favicon.png') }}">
@@ -16,80 +16,100 @@
             <div class="row justify-content-sm-center h-100">
                 <div class="col-xxl-6 col-xl-7 col-lg-8 col-md-9 col-sm-11">
                     <div class="text-center my-5">
-                        <img src="{{ url_for('static', filename='images/logo.png') }}"  alt="logo" width="150">
+                        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="logo" width="150">
                         <h2>Welcome to Communication_LTD</h2>
-                        <h4>Add new customer <a href="{{ url_for('add_customer') }}">here</a></h4>
                     </div>
-                    <div class="card shadow">
-                        <div class="card-body p-5">
-                            <h1 class="fs-4 card-title fw-bold mb-4">Password Changing Form</h1>
+                    <ul class="nav nav-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#changePassword">Change Password</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#addCustomer">Add Customer</a>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div id="changePassword" class="container tab-pane active"><br>
+                            <h3>Password Changing Form</h3>
                             <form method="post" class="needs-validation" novalidate="">
                                 <div class="mb-3" style="position: relative;">
-                                    <label for="current_password" class="text-muted">Current Password:</label>
+                                    <label for="current_password" class="form-label">Current Password:</label>
                                     <input type="password" class="form-control" id="current_password" name="current_password" required>
-                                    <div class="btn btn-primary btn-sm" id="passeye-toggle-0" onclick="togglePasswordVisibility1()" 
-                                        style="position: absolute; right: 10px; top: 70%; transform: translateY(-50%); 
-                                                padding: 2px 7px; font-size: 12px; cursor: pointer;">
-                                        Show
-                                    </div>
+                                    <div class="btn btn-primary btn-sm" id="passeye-toggle-0" onclick="togglePasswordVisibility1()"
+                                         style="position: absolute; right: 10px; top: 70%; transform: translateY(-50%);
+                                                padding: 2px 7px; font-size: 12px; cursor: pointer;">Show</div>
                                 </div>
                                 <div class="mb-3" style="position: relative;">
                                     <label for="new_password" class="form-label">New Password:</label>
                                     <input type="password" class="form-control" id="new_password" name="new_password" required>
                                     <div class="btn btn-primary btn-sm" id="passeye-toggle-1" onclick="togglePasswordVisibility2()" 
-                                        style="position: absolute; right: 10px; top: 70%; transform: translateY(-50%); 
-                                            padding: 2px 7px; font-size: 12px; cursor: pointer;">
-                                        Show
-                                    </div>
+                                         style="position: absolute; right: 10px; top: 70%; transform: translateY(-50%);
+                                                padding: 2px 7px; font-size: 12px; cursor: pointer;">Show</div>
                                 </div>
-                                <div class="d-grid">
-                                    <input type="submit" class="btn btn-primary" value="Change Password">
-                                </div>
-
-                                <!-- Flash messages -->
-                                {% with messages = get_flashed_messages(with_categories=true) %}
-                                    {% if messages %}
-                                        {% for category, message in messages %}
-                                            <div class="alert alert-{{ category }} mt-3">
-                                                {{ message }}
-                                            </div>
-                                        {% endfor %}
-                                    {% endif %}
-                                {% endwith %}
-                                <script>
-                                    function togglePasswordVisibility1() {
-                                        var x = document.getElementById("current_password");
-                                        if (x.type === "password") {
-                                            x.type = "text";
-                                            document.getElementById("passeye-toggle-0").innerHTML = "Hide";
-                                        } else {
-                                            x.type = "password";
-                                            document.getElementById("passeye-toggle-0").innerHTML = "Show";
-                                        }
-                                    }
-                                    function togglePasswordVisibility2() {
-                                        var x = document.getElementById("new_password");
-                                        if (x.type === "password") {
-                                            x.type = "text";
-                                            document.getElementById("passeye-toggle-1").innerHTML = "Hide";
-                                        } else {
-                                            x.type = "password";
-                                            document.getElementById("passeye-toggle-1").innerHTML = "Show";
-                                        }
-                                    }
-                                </script>
+                                <button type="submit" class="btn btn-primary">Change Password</button>
                             </form>
                         </div>
+                        <div id="addCustomer" class="container tab-pane fade"><br>
+                            <h3>Add Customer</h3>
+                            <form method="post" class="needs-validation" novalidate="" autocomplete="off">
+                                <div class="mb-3">
+                                    <label for="id" class="form-label">Id</label>
+                                    <input id="id" type="text" class="form-control" name="id" required autofocus>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Name</label>
+                                    <input id="name" type="text" class="form-control" name="name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="lastname" class="form-label">Last Name</label>
+                                    <input id="lastname" type="text" class="form-control" name="lastname" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input id="email" type="email" class="form-control" name="email" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Add</button>
+                                <a href="/home" class="btn btn-primary">Cancel</a>
+                            </form>
+                        </div>
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} mt-3" role="alert">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        {% endwith %}
                     </div>
-                    <div class="card-footer py-3 border-0">
-                    </div>
-                    </div>
-                </div>
-                <div class="text-center mt-5 text-muted">
-                    Copyright &copy; 2024 &mdash; Communication_LTD 
                 </div>
             </div>
         </div>
+        
     </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePasswordVisibility1() {
+            var x = document.getElementById("current_password");
+            if (x.type === "password") {
+                x.type = "text";
+                document.getElementById("passeye-toggle-0").textContent = "Hide";
+            } else {
+                x.type = "password";
+                document.getElementById("passeye-toggle-0").textContent = "Show";
+            }
+        }
+        function togglePasswordVisibility2() {
+            var y = document.getElementById("new_password");
+            if (y.type === "password") {
+                y.type = "text";
+                document.getElementById("passeye-toggle-1").textContent = "Hide";
+            } else {
+                y.type = "password";
+                document.getElementById("passeye-toggle-1").textContent = "Show";
+            }
+        }
+    </script>
 </body>
 </html>
