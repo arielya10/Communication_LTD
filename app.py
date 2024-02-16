@@ -111,9 +111,9 @@ def complexity_checks(user, new_password, update=False):
     return True, ''
 
 def validate_email(email):
-    # Email format validation 
-    email_pattern = re.compile(r'^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$')
-    return bool(re.match(email_pattern, email))
+    # Email format validation
+    email_regex_pattern = r'^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(email_regex_pattern, email))
 
 
 # Validate input
@@ -130,7 +130,7 @@ def validate_input(id,name,lastname,email):
     if not lastname.isalpha():
         return False, 'Invalid last name format.'
 
-    # using validate_email function
+    # email validation
     if not validate_email(email):
         return False, 'Invalid email format.'
 
