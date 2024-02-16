@@ -110,8 +110,14 @@ def complexity_checks(user, new_password, update=False):
 
     return True, ''
 
-# Validate customer input
-def validate_customer_input(id,name,lastname,email):
+def validate_email(email):
+    # Email format validation 
+    email_pattern = re.compile(r'^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$')
+    return bool(re.match(email_pattern, email))
+
+
+# Validate input
+def validate_input(id,name,lastname,email):
     # ID validation
     if not id.isdigit():
         return False, 'Invalid ID format.'
@@ -124,9 +130,8 @@ def validate_customer_input(id,name,lastname,email):
     if not lastname.isalpha():
         return False, 'Invalid last name format.'
 
-    # email format validation 
-    email_pattern = re.compile(r'^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$')
-    if not re.match(email_pattern, email):
+    # using validate_email function
+    if not validate_email(email):
         return False, 'Invalid email format.'
 
     
@@ -227,7 +232,7 @@ def home():
             if not (id and name and lastname and email):
                 flash('All fields are required.', 'danger')
             else:
-                is_valid, error_message = validate_customer_input(id, name, lastname, email)
+                is_valid, error_message = validate_input(id, name, lastname, email)
                 if not is_valid:
                     flash(error_message, 'danger')
                 else:
@@ -258,7 +263,7 @@ def add_customer():
             flash('All fields are required.', 'danger')
             return render_template('add_customer.html')
         # validate customer input
-        is_valid, error_message = validate_customer_input(id, name, lastname, email)
+        is_valid, error_message = validate_input(id, name, lastname, email)
         if not is_valid:
             flash(error_message, 'danger')
             return render_template('add_customer.html')
@@ -290,6 +295,11 @@ def register():
         if not email or not username:
             flash('Email and Username are required!', 'danger')
             return render_template('register.html')
+        
+        if not validate_email(email):
+            flash('Invalid email format.', 'danger')
+            return render_template('register.html')
+
 
         # Check if username or email already exists in database
         existing_user = User.query.filter_by(username=username).first()
