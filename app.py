@@ -43,13 +43,15 @@ class User(db.Model):
     reset_token = db.Column(db.String(100), nullable=True)
     reset_token_created_at = db.Column(db.DateTime, nullable=True)
     salt = db.Column(db.String(16), nullable=False)
+    customers = db.relationship('Customer', backref='creator', lazy=True)
+
 
 class Customer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     lastname = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    username = db.Column(db.Integer, nullable=False)  
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  
     
 
 
@@ -157,7 +159,7 @@ def login():
                 # Reset login attempts and update session information
                 user.login_attempts = 0
                 db.session.commit()
-                session['username'] = user.username
+                session['user_id'] = user.id
 
                 # Redirect to home page or dashboard after successful login
                 return redirect(url_for('home'))
@@ -190,7 +192,7 @@ def vulnerable_login():
 
         if user:
             # Logic after successful login
-            session['username'] = username
+            session['user_id'] = user.id
             return redirect(url_for('home'))
         else:
             # Flash message for unsuccessful login
@@ -227,7 +229,7 @@ def home():
             name = request.form.get('name')
             lastname = request.form.get('lastname')
             email = request.form.get('email')
-            username = session.get('username')
+            user_id = session.get('user_id')
 
             if not (id and name and lastname and email):
                 flash('All fields are required.', 'danger')
@@ -240,7 +242,7 @@ def home():
                     if existing_customer:
                         flash(f'Customer with ID {id} already exists.', 'danger')
                     else:
-                        new_customer = Customer(id=id, name=name, lastname=lastname, email=email, username=username)
+                        new_customer = Customer(id=id, name=name, lastname=lastname, email=email, user_id=user_id)
                         db.session.add(new_customer)
                         db.session.commit()
                         flash(f'Customer "{name} {lastname}" has been added successfully.', 'info')
