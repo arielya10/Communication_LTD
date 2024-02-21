@@ -26,6 +26,9 @@
                         <li class="nav-item">
                             <a class="nav-link" data-bs-toggle="tab" href="#addCustomer">Add Customer</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#searchCustomer">Search Customer</a>
+                        </li>
                     </ul>
 
                     <div class="tab-content">
@@ -72,6 +75,17 @@
                                 <a href="/home" class="btn btn-primary">Cancel</a>
                             </form>
                         </div>
+                        <div id="searchCustomer" class="container tab-pane fade"><br>
+                            <h3>Search Customer</h3>
+                            <form id="searchCustomerForm" method="POST" class="needs-validation" novalidate="" autocomplete="off">
+                                <div class="mb-3">
+                                    <label for="search_customer" class="form-label">Search by ID, Name, or Last Name:</label>
+                                    <input id="search_customer" type="text" class="form-control" name="search_customer" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Search</button>
+                            </form>
+                            <div id="searchResults" class="mt-3"></div>
+                        </div>
                         {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
@@ -111,5 +125,73 @@
             }
         }
     </script>
+    <script>
+        document.getElementById('searchCustomerForm').addEventListener('submit', function(e) {
+            e.preventDefault(); 
+        
+            const searchQuery = document.getElementById('search_customer').value;
+            const formData = new URLSearchParams();
+            formData.append('search_customer', searchQuery);
+        
+            fetch('/search_customer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData.toString(),
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultsContainer = document.getElementById('searchResults');
+                
+                while (resultsContainer.firstChild) {
+                    resultsContainer.removeChild(resultsContainer.firstChild);
+                }
+        
+                if (data && data.length > 0) {
+                    const table = document.createElement('table');
+                    table.className = 'table';
+        
+                    const thead = document.createElement('thead');
+                    const trHead = document.createElement('tr');
+                    
+                    const headers = ["Id", "Name", "Last Name", "Email"];
+                    headers.forEach(headerText => {
+                        const th = document.createElement('th');
+                        th.textContent = headerText; 
+                        trHead.appendChild(th);
+                    });
+        
+                    thead.appendChild(trHead);
+                    table.appendChild(thead);
+        
+                    const tbody = document.createElement('tbody');
+                    data.forEach(customer => {
+                        const tr = document.createElement('tr');
+                        appendTableCell(tr, customer.id);
+                        appendTableCell(tr, customer.name);
+                        appendTableCell(tr, customer.lastname);
+                        appendTableCell(tr, customer.email);
+        
+                        tbody.appendChild(tr);
+                    });
+                    table.appendChild(tbody);
+                    resultsContainer.appendChild(table);
+                } else {
+                    resultsContainer.textContent = 'No customer found.';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('searchResults').textContent = 'An error occurred while searching.';
+            });
+        });
+        
+        function appendTableCell(tr, text) {
+            const td = document.createElement('td');
+            td.textContent = text; 
+            tr.appendChild(td);
+        }
+        </script>
 </body>
 </html>
