@@ -1,6 +1,7 @@
-from flask import Flask, render_template, url_for, redirect, request, flash, session
+from flask import Flask, render_template, url_for, redirect, request, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import text
+from sqlalchemy import func
 import hashlib
 import hmac
 import json
@@ -248,6 +249,27 @@ def home():
                         flash(f'Customer "{name} {lastname}" has been added successfully.', 'info')
 
     return render_template('home.html')
+
+# Search customer route from the home page
+@app.route('/search_customer', methods=['GET', 'POST'])
+def search_customer():
+    if request.method == 'POST':
+        user_id = session.get('user_id') 
+        # Handle white spcaes and lower case sensitivity
+        search_query = request.form.get('search_customer', '').strip().lower()
+        # Query to find customers that match the logged-in user
+        customers = Customer.query.filter(
+            Customer.user_id == user_id,
+            db.or_(
+                func.lower(Customer.name) == search_query,
+                func.lower(Customer.lastname) == search_query,
+                Customer.id == search_query,
+                  )
+                    ).all()
+        # list of dictionaries from the query results
+        customer_dicts = [{'id': c.id, 'name': c.name, 'lastname': c.lastname, 'email': c.email} for c in customers]
+        # return the search results as a json
+        return jsonify(customer_dicts)
 
 # add customer route
 @app.route('/add_customer', methods=['GET', 'POST'])
