@@ -271,6 +271,15 @@ def search_customer():
         # return the search results as a json
         return jsonify(customer_dicts)
 
+# Logout route from the homepage
+@app.route('/logout')
+def logout():
+    # Clear data from session
+    session.clear()
+    flash('You have been logged out successfully.', 'info')
+    # Redirect back to login page
+    return redirect(url_for('login'))
+
 # add customer route
 @app.route('/add_customer', methods=['GET', 'POST'])
 def add_customer():
