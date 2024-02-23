@@ -205,12 +205,11 @@ def vulnerable_login():
 @app.route('/home', methods=['GET', 'POST'])
 def home():
     if request.method == 'POST':
-        if 'current_password' in request.form and 'new_password' in request.form:
             # Change Password functionality
             current_password = request.form.get('current_password')
             new_password = request.form.get('new_password')
-            username = session.get('username')
-            user = User.query.filter_by(username=username).first()
+            user_id = session.get('user_id')
+            user = User.query.filter_by(id=user_id).first()
 
             if user:
                 provided_current_password_hash, _ = hash_password_hmac(current_password, user.salt)
@@ -224,31 +223,38 @@ def home():
                 else:
                     flash('Current password is incorrect', 'danger')
 
-        elif 'id' in request.form and 'name' in request.form:
-            # Add Customer functionality
-            id = request.form.get('id')
-            name = request.form.get('name')
-            lastname = request.form.get('lastname')
-            email = request.form.get('email')
-            user_id = session.get('user_id')
-
-            if not (id and name and lastname and email):
-                flash('All fields are required.', 'danger')
-            else:
-                is_valid, error_message = validate_input(id, name, lastname, email)
-                if not is_valid:
-                    flash(error_message, 'danger')
-                else:
-                    existing_customer = Customer.query.filter_by(id=id).first()
-                    if existing_customer:
-                        flash(f'Customer with ID {id} already exists.', 'danger')
-                    else:
-                        new_customer = Customer(id=id, name=name, lastname=lastname, email=email, user_id=user_id)
-                        db.session.add(new_customer)
-                        db.session.commit()
-                        flash(f'Customer "{name} {lastname}" has been added successfully.', 'info')
 
     return render_template('home.html')
+
+# Add customer route from home page
+@app.route('/add_customer', methods=['POST'])
+def add_customer():
+    if request.method == 'POST':
+        id = request.form.get('id')
+        name = request.form.get('name')
+        lastname = request.form.get('lastname')
+        email = request.form.get('email')
+        user_id = session.get('user_id')  
+
+        # Check if all fields are filled 
+        if not (id and name and lastname and email):
+            return jsonify({'status': 'error', 'message': 'All fields are required.'}), 400
+        
+        # Validate customer input
+        is_valid, error_message = validate_input(id, name, lastname, email)
+        if not is_valid:
+            return jsonify({'status': 'error', 'message': error_message}), 400
+        
+        # Check if the customer already exist in the database
+        existing_customer = Customer.query.filter_by(id=id).first()
+        if existing_customer:
+            return jsonify({'status': 'error', 'message': f'Customer with ID {id} already exists.'}), 400
+        
+        # Create New Customer instance
+        new_customer = Customer(id=id, name=name, lastname=lastname, email=email, user_id=user_id)
+        db.session.add(new_customer)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': f'{name} {lastname} has been added successfully.'})
 
 # Search customer route from the home page
 @app.route('/search_customer', methods=['GET', 'POST'])
@@ -280,39 +286,7 @@ def logout():
     # Redirect back to login page
     return redirect(url_for('login'))
 
-# add customer route
-@app.route('/add_customer', methods=['GET', 'POST'])
-def add_customer():
-    if request.method == 'POST':
-        # Get details from the form
-        id = request.form.get('id')
-        name = request.form.get('name')
-        lastname = request.form.get('lastname')
-        email = request.form.get('email')
-        username=session.get('username')
 
-        # Check if all fields are filled 
-        if not (id and name and lastname and email):
-            flash('All fields are required.', 'danger')
-            return render_template('add_customer.html')
-        # validate customer input
-        is_valid, error_message = validate_input(id, name, lastname, email)
-        if not is_valid:
-            flash(error_message, 'danger')
-            return render_template('add_customer.html')
-        # Check if the customer already exist in the database
-        existing_customer=Customer.query.filter_by(id=id).first()
-        if existing_customer:
-            flash(f'Customer with ID {id} already exists.', 'danger')
-
-        else:
-            # Create New Customer instance
-            new_customer=Customer(id=id,name=name,lastname=lastname,email=email,username=username)
-            db.session.add(new_customer)
-            db.session.commit()
-            flash(f'Customer "{name} {lastname}" has been added successfully.', 'info')
-   
-    return render_template('add_customer.html')
 
 # User registration route
 @app.route('/register', methods=['GET', 'POST'])
