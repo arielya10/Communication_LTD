@@ -1,26 +1,25 @@
-from flask import Flask, render_template, url_for, redirect, request, flash, session, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.sql import text
-from sqlalchemy import func
+# Standard library imports
 import hashlib
-import hmac
 import json
-import re
-import hashlib
-import os
-from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 
+# Related third-party imports
+from flask import Flask, render_template, url_for, redirect, request, flash, session, jsonify
+from flask_mail import Mail, Message
+from sqlalchemy import func
+
+# Local application/library specific imports
+from functions import *
+from models import db, User, Customer
 
 
 # Initialize Flask application
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  
 
-
 # Configuration for SQLAlchemy (using SQLite for simplicity)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-db = SQLAlchemy(app)  # Initialize SQLAlchemy with app configuration
+db.init_app(app)
 
 # Load configuration
 with open('config.json') as config_file:
@@ -29,117 +28,7 @@ with open('config.json') as config_file:
         app.config[key] = value
     mail = Mail(app)  # Initialize Flask-Mail with app configuration
 
-
-# Database models
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(20), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(60), nullable=False)
-    previous_password_1 = db.Column(db.String(60), nullable=True)
-    previous_password_2 = db.Column(db.String(60), nullable=True)
-    previous_password_3 = db.Column(db.String(60), nullable=True)  
-    login_attempts = db.Column(db.Integer, default=0)
-    must_reset_password = db.Column(db.Boolean, default=False)
-    reset_token = db.Column(db.String(100), nullable=True)
-    reset_token_created_at = db.Column(db.DateTime, nullable=True)
-    salt = db.Column(db.String(16), nullable=False)
-    customers = db.relationship('Customer', backref='creator', lazy=True)
-
-
-class Customer(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    lastname = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  
     
-
-
-    
-    def __repr__(self):
-        return f"User('{self.username}', '{self.email}')"
-    
-# hash password using HMAC and salt
-def hash_password_hmac(password, salt=None):
-    if salt is None:
-        # Generate a new salt
-        salt = os.urandom(16)
-    # Ensure that salt is bytes
-    if isinstance(salt, str):
-        salt = salt.encode('utf-8')
-    # Create HMAC hash of the password
-    password_hash = hmac.new(salt, password.encode('utf-8'), hashlib.sha256).digest()
-    return password_hash, salt
-
-# Password complexity checks
-def complexity_checks(user, new_password, update=False):
-    # Initial password length and pattern checks
-    if len(new_password) < config['password_length']:
-        return False, f'Password must be at least {config["password_length"]} characters long.'
-
-    complexity = config['password_complexity']
-    if complexity['uppercase'] and not re.search(r'[A-Z]', new_password):
-        return False, 'Password must contain an uppercase letter.'
-    if complexity['lowercase'] and not re.search(r'[a-z]', new_password):
-        return False, 'Password must contain a lowercase letter.'
-    if complexity['numbers'] and not re.search(r'[0-9]', new_password):
-        return False, 'Password must contain a number.'
-    if complexity['special_characters'] and not re.search(r'[!@#$%^&*(),.?":{}|<>]', new_password):
-        return False, 'Password must contain a special character.'
-
-    try:
-        with open(config['dictionary_file'], 'r', encoding='utf-8', errors='ignore') as file:
-            dictionary = file.read().splitlines()
-        if new_password in dictionary:
-            return False, 'Password is too common. Please choose a different one.'
-    except FileNotFoundError:
-        print(f"Dictionary file not found: {config['dictionary_file']}")
-
-    # Check if the new password is valid (not used before)
-    new_password_hash, _ = hash_password_hmac(new_password, user.salt)
-    if new_password_hash == user.password or new_password_hash == user.previous_password_1 or new_password_hash == user.previous_password_2 or new_password_hash == user.previous_password_3:
-        return False, 'Password has been used before. Please choose a different one.'
-
-    # Update password if requested
-    if update:
-        # Shift the old passwords
-        user.previous_password_3 = user.previous_password_2
-        user.previous_password_2 = user.previous_password_1
-        user.previous_password_1 = user.password
-        # Set the new password
-        user.password = new_password_hash
-        db.session.commit()
-
-    return True, ''
-
-def validate_email(email):
-    # Email format validation
-    email_regex_pattern = r'^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$'
-    return bool(re.match(email_regex_pattern, email))
-
-
-# Validate input
-def validate_input(id,name,lastname,email):
-    # ID validation
-    if not id.isdigit():
-        return False, 'Invalid ID format.'
-
-    # name validation 
-    if not name.isalpha():
-        return False, 'Invalid name format.'
-
-    # last name validation 
-    if not lastname.isalpha():
-        return False, 'Invalid last name format.'
-
-    # email validation
-    if not validate_email(email):
-        return False, 'Invalid email format.'
-
-    
-    return True, ''
-
 # Login page route (main page)
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -153,10 +42,10 @@ def login():
 
         if user:
             # Hash the provided password using the salt stored for this user
-            provided_password_hash, _ = hash_password_hmac(password, user.salt)
+            provided_password_hash, _ = hash_password_hmac(password, bytes.fromhex(user.salt))
 
             # Check if hashed password matches the one in the database
-            if provided_password_hash == user.password:
+            if provided_password_hash.hex() == user.password:
                 # Reset login attempts and update session information
                 user.login_attempts = 0
                 db.session.commit()
@@ -176,31 +65,6 @@ def login():
     # Render login template
     return render_template('login.html')
 
-#vulnerable login page route (main page)
-@app.route('/vulnerable_login', methods=['GET', 'POST'])
-def vulnerable_login():
-    if request.method == 'POST':
-        # Get username and password from form
-        username = request.form.get('username')
-        password = request.form.get('password')
-
-        sql = f"SELECT * FROM user WHERE username = '{username}' AND password = '{password}'"
-
-        # Execute raw SQL query using text()
-        with db.engine.connect() as conn:
-            result = conn.execute(text(sql))
-            user = result.fetchone()
-
-        if user:
-            # Logic after successful login
-            session['user_id'] = user.id
-            return redirect(url_for('home'))
-        else:
-            # Flash message for unsuccessful login
-            flash('Login Unsuccessful. Please check username and password', 'danger')
-
-    return render_template('login.html')
-
 # Home page route (after successful login)
 @app.route('/home', methods=['GET', 'POST'])
 def home():
@@ -212,9 +76,9 @@ def home():
             user = User.query.filter_by(id=user_id).first()
 
             if user:
-                provided_current_password_hash, _ = hash_password_hmac(current_password, user.salt)
-                if provided_current_password_hash == user.password:
-                    is_valid, message = complexity_checks(user, new_password, True)
+                provided_current_password_hash, _ = hash_password_hmac(current_password, bytes.fromhex(user.salt))
+                if provided_current_password_hash.hex() == user.password:
+                    is_valid, message = complexity_checks(user, new_password, config, True)
                     if not is_valid:
                         flash(message, 'danger')
                     else:
@@ -286,8 +150,6 @@ def logout():
     # Redirect back to login page
     return redirect(url_for('login'))
 
-
-
 # User registration route
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -322,42 +184,19 @@ def register():
         new_user = User(username=username, email=email, password=password)
 
         # Validate password complexity
-        is_valid, message = complexity_checks(new_user, password)
-        if not is_valid:
+        is_valid, message = complexity_checks(new_user, password, config, True)
+        if not is_valid:    
             flash(message, 'danger')
             return render_template('register.html',username=username, email=email)
         
         # Hash the password with HMAC and a new salt
         hashed_password, salt = hash_password_hmac(password)
-        new_user = User(username=username, email=email, password=hashed_password, salt=salt)
+        new_user = User(username=username, email=email, password=hashed_password.hex(), salt=salt.hex())
         db.session.add(new_user)
         db.session.commit()
         flash('Your account has been created! You are now able to log in', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
-
-# Vulnerable user registration route
-@app.route('/vulnerable_register', methods=['GET', 'POST'])
-def vulnerable_register():
-    if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
-
-        sql = "INSERT INTO user (username, email, password) VALUES ('{}', '{}', '{}')".format(username, email, password)
-
-        try:
-            with db.engine.begin() as conn:  
-                conn.execute(text(sql))
-            flash('Your account has been created! You are now able to log in', 'success')
-            return redirect(url_for('login'))
-        except Exception as e:
-            flash(f'An error occurred: {e}', 'danger')
-
-    return render_template('register.html')
-
-
-
 
 # Password recovery route
 @app.route('/password-recovery', methods=['GET', 'POST'])
@@ -409,12 +248,12 @@ def password_recovery():
             user = User.query.filter_by(email=email).first()
 
             if user:
-                is_valid, message = complexity_checks(user, new_password, True)
+                is_valid, message = complexity_checks(user, new_password, config, True)
                 if not is_valid:
                     flash(message, 'danger')
                     return render_template('password_recovery.html', stage=stage, email=email)
 
-                hashed_password, _ = hash_password_hmac(new_password, user.salt)
+                hashed_password, _ = hash_password_hmac(new_password, bytes.fromhex(user.salt))
                 user.password = hashed_password
                 user.must_reset_password = False
                 user.login_attempts = 0
