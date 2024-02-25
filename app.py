@@ -39,7 +39,10 @@ def login():
 
         # Query the user by username
         user = User.query.filter_by(username=username).first()
-
+        if user.login_attempts >= 3:
+            user.must_reset_password = True
+            flash('Your account has been locked. Please reset your password.', 'danger')
+            return redirect(url_for('password_recovery'))
         if user:
             # Hash the provided password using the salt stored for this user
             provided_password_hash, _ = hash_password_hmac(password, bytes.fromhex(user.salt))
@@ -254,7 +257,7 @@ def password_recovery():
                     return render_template('password_recovery.html', stage=stage, email=email)
 
                 hashed_password, _ = hash_password_hmac(new_password, bytes.fromhex(user.salt))
-                user.password = hashed_password
+                user.password = hashed_password.hex()
                 user.must_reset_password = False
                 user.login_attempts = 0
                 db.session.commit()
@@ -268,4 +271,3 @@ def password_recovery():
 
 if __name__ == '__main__':
     app.run(debug=True)
-

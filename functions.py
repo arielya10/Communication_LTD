@@ -2,7 +2,8 @@ import hmac
 import hashlib
 import os
 import re
-    
+from models import db, User, Customer
+
 # hash password using HMAC and salt
 def hash_password_hmac(password, salt=None):
     if salt is None:
@@ -40,7 +41,7 @@ def complexity_checks(user, new_password, config, update=False):
         print(f"Dictionary file not found: {config['dictionary_file']}")
 
     # Check if the new password is valid (not used before)
-    new_password_hash, _ = hash_password_hmac(new_password, bytes.fromhex(user.salt))
+    new_password_hash, _ = hash_password_hmac(new_password, user.salt)
     if new_password_hash.hex() == user.password or new_password_hash == user.previous_password_1 or new_password_hash == user.previous_password_2 or new_password_hash == user.previous_password_3:
         return False, 'Password has been used before. Please choose a different one.'
 
