@@ -71,6 +71,9 @@ def login():
 # Home page route (after successful login)
 @app.route('/home', methods=['GET', 'POST'])
 def home():
+     # Check if user logged in 
+    if session.get('user_id') is None:
+        return redirect(url_for('login'))
     if request.method == 'POST':
         current_password_input = request.form.get('current_password')
         new_password = request.form.get('new_password')
