@@ -2,6 +2,7 @@
 import hashlib
 import json
 from datetime import datetime, timedelta
+from html import escape
 
 # Related third-party imports
 from flask import Flask, render_template, url_for, redirect, request, flash, session, jsonify
@@ -97,10 +98,10 @@ def home():
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
     if request.method == 'POST':
-        id = request.form.get('id')
-        name = request.form.get('name')
-        lastname = request.form.get('lastname')
-        email = request.form.get('email')
+        id = escape(request.form.get('id'))
+        name = escape(request.form.get('name'))
+        lastname = escape(request.form.get('lastname'))
+        email = escape(request.form.get('email'))
         user_id = session.get('user_id')  
 
         # Check if all fields are filled 
