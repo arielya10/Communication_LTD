@@ -123,14 +123,16 @@ def add_customer():
         user_id = session.get('user_id')
 
         conn = get_db_connection()
-        # Check if the customer already exists in the database
-        existing_customer = conn.execute('SELECT * FROM customer WHERE email = ?', (email,)).fetchone()
+        # Vulnerable SQL query due to direct concatenation of user input
+        existing_customer_query = f"SELECT * FROM customer WHERE email = '{email}'"
+        existing_customer = conn.executescript(existing_customer_query).fetchone()
         if existing_customer:
             conn.close()
             return jsonify({'status': 'error', 'message': f'Customer with email {email} already exists.'}), 400
 
-        conn.execute('INSERT INTO customer (name, lastname, email, user_id) VALUES (?, ?, ?, ?)', 
-                     (name, lastname, email, user_id))
+        # Vulnerable SQL command due to direct concatenation
+        insert_customer_query = f"INSERT INTO customer (name, lastname, email, user_id) VALUES ('{name}', '{lastname}', '{email}', '{user_id}')"
+        conn.execute(insert_customer_query)
         conn.commit()
         conn.close()
         return jsonify({'status': 'success', 'message': f'{name} {lastname} has been added successfully.'})
