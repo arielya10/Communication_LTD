@@ -52,7 +52,7 @@ def login():
                 flash('Your account has been locked. Please reset your password.', 'danger')
                 return redirect(url_for('password_recovery'))
 
-            provided_password_hash, _ = hash_password_hmac(password, user['salt'])
+            provided_password_hash, _ = hash_password_hmac(password, bytes.fromhex(user['salt']))
 
             if provided_password_hash.hex() == user['password']:
                 conn.execute('UPDATE user SET login_attempts = 0 WHERE username = ?', (username,))
@@ -87,7 +87,7 @@ def home():
             return render_template('home.html')
         
         # Hash the input current password using the user's stored salt
-        current_password_hashed, _ = hash_password_hmac(current_password_input, user['salt'])
+        current_password_hashed, _ = hash_password_hmac(current_password_input, bytes.fromhex(user['salt']))
         
         if current_password_hashed.hex() != user['password']:
             flash('Incorrect current password.', 'danger')
@@ -97,7 +97,7 @@ def home():
         if not is_valid:
             flash(message, 'danger')
         else:
-            new_password_hashed, _ = hash_password_hmac(new_password, user['salt'])
+            new_password_hashed, _ = hash_password_hmac(new_password, bytes.fromhex(user['salt']))
             success, message = shift_previous_passwords(user_id, new_password_hashed.hex())
             if not success:
                 flash(message, 'danger')  
@@ -194,7 +194,7 @@ def register():
         
         hashed_password, salt = hash_password_hmac(password)
         conn.execute('INSERT INTO user (username, email, password, salt) VALUES (?, ?, ?, ?)',
-                     (username, email, hashed_password.hex(), salt))
+                     (username, email, hashed_password.hex(), salt.hex()))
         conn.commit()
         conn.close()
         flash('Your account has been created! You are now able to log in', 'success')
@@ -254,7 +254,7 @@ def password_recovery():
                 if not is_valid:
                     flash(message, 'danger')
                 else:
-                    new_password_hashed, _ = hash_password_hmac(new_password, user['salt'])
+                    new_password_hashed, _ = hash_password_hmac(new_password, bytes.fromhex(user['salt']))
                     success, message = shift_previous_passwords(user['id'], new_password.hex())
                     if not success:
                         flash(message, 'danger')  
