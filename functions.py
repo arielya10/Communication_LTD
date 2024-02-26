@@ -2,7 +2,33 @@ import hmac
 import hashlib
 import os
 import re
-from models import db, User, Customer
+import sqlite3
+
+DATABASE = 'instance/site.db'
+
+def get_db_connection():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row  # This allows accessing columns by name
+    return conn
+
+def shift_previous_passwords(user_id, new_password):
+    conn = get_db_connection()
+    user_record = conn.execute('SELECT * FROM user WHERE id = ?', (user_id,)).fetchone()
+    if not user_record:
+        conn.close()
+        return False, "User not found."
+    if (new_password == user_record['password'] or
+       new_password == user_record['previous_password_1'] or
+       new_password == user_record['previous_password_2'] or
+       new_password == user_record['previous_password_3']):
+        conn.close()
+        return False, "New password must be different from the previous one."
+    # Update user's password and shift the previous passwords
+    conn.execute('UPDATE user SET password = ?, previous_password_1 = ?, previous_password_2 = ?, previous_password_3 = ? WHERE id = ?', 
+             (new_password, user_record['password'], user_record['previous_password_1'], user_record['previous_password_2'], user_id))
+    conn.commit()
+    conn.close()
+    return True, ''
 
 # hash password using HMAC and salt
 def hash_password_hmac(password, salt=None):
@@ -17,7 +43,7 @@ def hash_password_hmac(password, salt=None):
     return password_hash, salt
 
 # Password complexity checks
-def complexity_checks(user, new_password, config, update=False):
+def complexity_checks(new_password, config):  
     # Initial password length and pattern checks
     if len(new_password) < config['password_length']:
         return False, f'Password must be at least {config["password_length"]} characters long.'
@@ -39,21 +65,6 @@ def complexity_checks(user, new_password, config, update=False):
             return False, 'Password is too common. Please choose a different one.'
     except FileNotFoundError:
         print(f"Dictionary file not found: {config['dictionary_file']}")
-
-    # Check if the new password is valid (not used before)
-    new_password_hash, _ = hash_password_hmac(new_password, user.salt)
-    if new_password_hash.hex() == user.password or new_password_hash == user.previous_password_1 or new_password_hash == user.previous_password_2 or new_password_hash == user.previous_password_3:
-        return False, 'Password has been used before. Please choose a different one.'
-
-    # Update password if requested
-    if update:
-        # Shift the old passwords
-        user.previous_password_3 = user.previous_password_2
-        user.previous_password_2 = user.previous_password_1
-        user.previous_password_1 = user.password
-        # Set the new password
-        user.password = new_password_hash
-        db.session.commit()
 
     return True, ''
 

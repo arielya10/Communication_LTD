@@ -2,24 +2,24 @@
 import hashlib
 import json
 from datetime import datetime, timedelta
+import sqlite3
 
 # Related third-party imports
 from flask import Flask, render_template, url_for, redirect, request, flash, session, jsonify
 from flask_mail import Mail, Message
-from sqlalchemy import func
 
 # Local application/library specific imports
 from functions import *
-from models import db, User, Customer
+from models import *
 
 
 # Initialize Flask application
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  
 
-# Configuration for SQLAlchemy (using SQLite for simplicity)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-db.init_app(app)
+# Configuration for SQLite
+DATABASE = 'instance/site.db'
+
 
 # Load configuration
 with open('config.json') as config_file:
@@ -28,68 +28,82 @@ with open('config.json') as config_file:
         app.config[key] = value
     mail = Mail(app)  # Initialize Flask-Mail with app configuration
 
-    
+def get_db_connection():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 # Login page route (main page)
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # Get username and password from form
         username = request.form.get('username')
         password = request.form.get('password')
 
-        # Query the user by username
-        user = User.query.filter_by(username=username).first()
-        if user.login_attempts >= 3:
-            user.must_reset_password = True
-            flash('Your account has been locked. Please reset your password.', 'danger')
-            return redirect(url_for('password_recovery'))
+        conn = get_db_connection()
+        user = conn.execute('SELECT * FROM user WHERE username = ?', (username,)).fetchone()
+
         if user:
-            # Hash the provided password using the salt stored for this user
-            provided_password_hash, _ = hash_password_hmac(password, bytes.fromhex(user.salt))
+            if user['login_attempts'] >= config['login_attempts']:
+                conn.execute('UPDATE user SET must_reset_password = ? WHERE username = ?', (True, username))
+                conn.commit()
+                conn.close()
+                flash('Your account has been locked. Please reset your password.', 'danger')
+                return redirect(url_for('password_recovery'))
 
-            # Check if hashed password matches the one in the database
-            if provided_password_hash.hex() == user.password:
-                # Reset login attempts and update session information
-                user.login_attempts = 0
-                db.session.commit()
-                session['user_id'] = user.id
+            provided_password_hash, _ = hash_password_hmac(password, user['salt'])
 
-                # Redirect to home page or dashboard after successful login
+            if provided_password_hash.hex() == user['password']:
+                conn.execute('UPDATE user SET login_attempts = 0 WHERE username = ?', (username,))
+                conn.commit()
+                session['user_id'] = user['id']
+                conn.close()
                 return redirect(url_for('home'))
-
             else:
-                # Increment login attempts after a failed login
-                user.login_attempts += 1
-                db.session.commit()
-
-        # Flash message for unsuccessful login
+                conn.execute('UPDATE user SET login_attempts = login_attempts + 1 WHERE username = ?', (username,))
+                conn.commit()
+        conn.close()
         flash('Login Unsuccessful. Please check username and password', 'danger')
 
-    # Render login template
     return render_template('login.html')
 
 # Home page route (after successful login)
 @app.route('/home', methods=['GET', 'POST'])
 def home():
     if request.method == 'POST':
-            # Change Password functionality
-            current_password = request.form.get('current_password')
-            new_password = request.form.get('new_password')
-            user_id = session.get('user_id')
-            user = User.query.filter_by(id=user_id).first()
+        current_password_input = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        user_id = session.get('user_id')
 
-            if user:
-                provided_current_password_hash, _ = hash_password_hmac(current_password, bytes.fromhex(user.salt))
-                if provided_current_password_hash.hex() == user.password:
-                    is_valid, message = complexity_checks(user, new_password, config, True)
-                    if not is_valid:
-                        flash(message, 'danger')
-                    else:
-                        # Update the user's password here
-                        flash('Password changed successfully', 'success')
-                else:
-                    flash('Current password is incorrect', 'danger')
+        conn = get_db_connection()
+        user = conn.execute('SELECT * FROM user WHERE id = ?', (user_id,)).fetchone()
+        if not user:
+            flash('User not found.', 'danger')
+            conn.close()
+            return render_template('home.html')
+        
+        # Hash the input current password using the user's stored salt
+        current_password_hashed, _ = hash_password_hmac(current_password_input, user['salt'])
+        
+        if current_password_hashed.hex() != user['password']:
+            flash('Incorrect current password.', 'danger')
+            return render_template('home.html')
 
+        is_valid, message = complexity_checks(new_password, config)
+        if not is_valid:
+            flash(message, 'danger')
+        else:
+            new_password_hashed, _ = hash_password_hmac(new_password, user['salt'])
+            success, message = shift_previous_passwords(user_id, new_password_hashed.hex())
+            if not success:
+                flash(message, 'danger')  
+            else:                
+                session['password'] = new_password_hashed.hex()
+                flash('Your password has been changed successfully.', 'success')
+                return redirect(url_for('home'))
+
+        conn.close()
 
     return render_template('home.html')
 
@@ -97,52 +111,38 @@ def home():
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
     if request.method == 'POST':
-        id = request.form.get('id')
         name = request.form.get('name')
         lastname = request.form.get('lastname')
         email = request.form.get('email')
-        user_id = session.get('user_id')  
+        user_id = session.get('user_id')
 
-        # Check if all fields are filled 
-        if not (id and name and lastname and email):
-            return jsonify({'status': 'error', 'message': 'All fields are required.'}), 400
-        
-        # Validate customer input
-        is_valid, error_message = validate_input(id, name, lastname, email)
-        if not is_valid:
-            return jsonify({'status': 'error', 'message': error_message}), 400
-        
-        # Check if the customer already exist in the database
-        existing_customer = Customer.query.filter_by(id=id).first()
+        conn = get_db_connection()
+        # Check if the customer already exists in the database
+        existing_customer = conn.execute('SELECT * FROM customer WHERE email = ?', (email,)).fetchone()
         if existing_customer:
-            return jsonify({'status': 'error', 'message': f'Customer with ID {id} already exists.'}), 400
-        
-        # Create New Customer instance
-        new_customer = Customer(id=id, name=name, lastname=lastname, email=email, user_id=user_id)
-        db.session.add(new_customer)
-        db.session.commit()
+            conn.close()
+            return jsonify({'status': 'error', 'message': f'Customer with email {email} already exists.'}), 400
+
+        conn.execute('INSERT INTO customer (name, lastname, email, user_id) VALUES (?, ?, ?, ?)', 
+                     (name, lastname, email, user_id))
+        conn.commit()
+        conn.close()
         return jsonify({'status': 'success', 'message': f'{name} {lastname} has been added successfully.'})
 
 # Search customer route from the home page
-@app.route('/search_customer', methods=['GET', 'POST'])
+@app.route('/search_customer', methods=['POST'])
 def search_customer():
     if request.method == 'POST':
-        user_id = session.get('user_id') 
-        # Handle white spcaes and lower case sensitivity
+        user_id = session.get('user_id')
         search_query = request.form.get('search_customer', '').strip().lower()
-        # Query to find customers that match the logged-in user
-        customers = Customer.query.filter(
-            Customer.user_id == user_id,
-            db.or_(
-                func.lower(Customer.name) == search_query,
-                func.lower(Customer.lastname) == search_query,
-                Customer.id == search_query,
-                  )
-                    ).all()
-        # list of dictionaries from the query results
-        customer_dicts = [{'id': c.id, 'name': c.name, 'lastname': c.lastname, 'email': c.email} for c in customers]
-        # return the search results as a json
+
+        conn = get_db_connection()
+        customers = conn.execute('SELECT * FROM customer WHERE user_id = ? AND (LOWER(name) = ? OR LOWER(lastname) = ?)', 
+                                 (user_id, search_query, search_query)).fetchall()
+        customer_dicts = [{'id': c['id'], 'name': c['name'], 'lastname': c['lastname'], 'email': c['email']} for c in customers]
+        conn.close()
         return jsonify(customer_dicts)
+
 
 # Logout route from the homepage
 @app.route('/logout')
@@ -157,13 +157,10 @@ def logout():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        
-        # Get username, email, and password from form   
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
 
-        # Validation for email and username
         if not email or not username:
             flash('Email and Username are required!', 'danger')
             return render_template('register.html')
@@ -172,34 +169,36 @@ def register():
             flash('Invalid email format.', 'danger')
             return render_template('register.html')
 
+        conn = get_db_connection()
+        existing_user = conn.execute('SELECT * FROM user WHERE username = ?', (username,)).fetchone()
+        existing_email = conn.execute('SELECT * FROM user WHERE email = ?', (email,)).fetchone()
 
-        # Check if username or email already exists in database
-        existing_user = User.query.filter_by(username=username).first()
-        existing_email = User.query.filter_by(email=email).first()
         if existing_user:
             flash('Username already taken. Please choose a different one.', 'danger')
+            conn.close()
             return render_template('register.html')
         if existing_email:
             flash('An account with this email already exists.', 'danger')
+            conn.close()
             return render_template('register.html')
-        
-        # Create a new user instance for complexity check
-        new_user = User(username=username, email=email, password=password)
 
-        # Validate password complexity
-        is_valid, message = complexity_checks(new_user, password, config, True)
-        if not is_valid:    
+        # Assuming complexity_checks function returns True if password is complex enough
+        is_valid, message = complexity_checks(password, config)
+        if not is_valid:
             flash(message, 'danger')
-            return render_template('register.html',username=username, email=email)
+            conn.close()
+            return render_template('register.html', username=username, email=email)
         
-        # Hash the password with HMAC and a new salt
         hashed_password, salt = hash_password_hmac(password)
-        new_user = User(username=username, email=email, password=hashed_password.hex(), salt=salt.hex())
-        db.session.add(new_user)
-        db.session.commit()
+        conn.execute('INSERT INTO user (username, email, password, salt) VALUES (?, ?, ?, ?)',
+                     (username, email, hashed_password.hex(), salt))
+        conn.commit()
+        conn.close()
         flash('Your account has been created! You are now able to log in', 'success')
         return redirect(url_for('login'))
+
     return render_template('register.html')
+
 
 # Password recovery route
 @app.route('/password-recovery', methods=['GET', 'POST'])
@@ -210,34 +209,33 @@ def password_recovery():
     if request.method == 'POST':
         email = request.form.get('email', email)
 
+        conn = get_db_connection()
+
         if stage == 'request':
-            # Logic for requesting password reset
-            user = User.query.filter_by(email=email).first()
+            user = conn.execute('SELECT * FROM user WHERE email = ?', (email,)).fetchone()
             if user:
-                # Generate a random value and SHA-1 hash it
                 random_value = os.urandom(16)
                 hash_object = hashlib.sha1(random_value)
                 password_reset_token = hash_object.hexdigest()
-                user.reset_token = password_reset_token
-                user.reset_token_created_at = datetime.utcnow()
-                db.session.commit()
+                conn.execute('UPDATE user SET reset_token = ?, reset_token_created_at = ? WHERE email = ?', 
+                             (password_reset_token, datetime.utcnow(), email))
+                conn.commit()
 
-                msg = Message('Password Reset Request', sender=config['MAIL_USERNAME'], recipients=[email])
+                msg = Message('Password Reset Request', sender=app.config['MAIL_USERNAME'], recipients=[email])
                 msg.body = f'Your password reset token is: {password_reset_token}'
                 mail.send(msg)
                 flash('An email with the password reset token has been sent.', 'info')
                 return redirect(url_for('password_recovery', stage='verify', email=email))
+
             else:
                 flash('No account associated with this email.', 'danger')
 
-        
         elif stage == 'verify':
-            # Logic for verifying token
             token = request.form.get('token')
-            user = User.query.filter_by(email=email).first()
+            user = conn.execute('SELECT * FROM user WHERE email = ? AND reset_token = ?', (email, token)).fetchone()
 
-            if user and user.reset_token == token:
-                token_age = datetime.utcnow() - user.reset_token_created_at
+            if user:
+                token_age = datetime.utcnow() - datetime.strptime(user['reset_token_created_at'], '%Y-%m-%d %H:%M:%S.%f')
                 if token_age <= timedelta(minutes=5):
                     return redirect(url_for('password_recovery', stage='reset', email=email))
                 else:
@@ -246,27 +244,27 @@ def password_recovery():
                 flash('Invalid token.', 'danger')
 
         elif stage == 'reset':
-            # Logic for resetting the password
             new_password = request.form.get('new_password')
-            user = User.query.filter_by(email=email).first()
-
+            user = conn.execute('SELECT * FROM user WHERE email = ?', (email,)).fetchone()
             if user:
-                is_valid, message = complexity_checks(user, new_password, config, True)
+                is_valid, message = complexity_checks(new_password, config)
                 if not is_valid:
                     flash(message, 'danger')
-                    return render_template('password_recovery.html', stage=stage, email=email)
+                else:
+                    new_password_hashed, _ = hash_password_hmac(new_password, user['salt'])
+                    success, message = shift_previous_passwords(user['id'], new_password.hex())
+                    if not success:
+                        flash(message, 'danger')  
+                    else:                
+                        session['password'] = new_password_hashed.hex()
+                        flash('Your password has been changed successfully.', 'success')
+                        return redirect(url_for('login'))
 
-                hashed_password, _ = hash_password_hmac(new_password, bytes.fromhex(user.salt))
-                user.password = hashed_password.hex()
-                user.must_reset_password = False
-                user.login_attempts = 0
-                db.session.commit()
 
-                flash('Your password has been reset successfully.', 'success')
-                return redirect(url_for('login'))
-
-
+            conn.close()
+            
     return render_template('password_recovery.html', stage=stage, email=email)
+
 
 
 if __name__ == '__main__':

@@ -1,28 +1,58 @@
-from flask_sqlalchemy import SQLAlchemy
-db = SQLAlchemy()
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(20), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(60), nullable=False)
-    previous_password_1 = db.Column(db.String(60), nullable=True)
-    previous_password_2 = db.Column(db.String(60), nullable=True)
-    previous_password_3 = db.Column(db.String(60), nullable=True)  
-    login_attempts = db.Column(db.Integer, default=0)
-    must_reset_password = db.Column(db.Boolean, default=False)
-    reset_token = db.Column(db.String(100), nullable=True)
-    reset_token_created_at = db.Column(db.DateTime, nullable=True)
-    salt = db.Column(db.String(16), nullable=False)
-    customers = db.relationship('Customer', backref='creator', lazy=True)
+import sqlite3
 
 
-class Customer(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    lastname = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  
+def get_db_connection():
+    conn = sqlite3.connect('instance/site.db')
+    conn.row_factory = sqlite3.Row  # This allows accessing columns by name
+    return conn
+
+def clear_all_data():
+    conn = get_db_connection()
+    cursor = conn.cursor()
     
-    def __repr__(self):
-        return f"User('{self.username}', '{self.email}')"
+    # Delete all data from tables
+    cursor.execute('DELETE FROM customer')
+    cursor.execute('DELETE FROM user')
+    
+    conn.commit()
+    conn.close()
+    print("All data cleared.")
+
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS user (
+        id INTEGER PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        previous_password_1 TEXT,
+        previous_password_2 TEXT,
+        previous_password_3 TEXT,
+        login_attempts INTEGER DEFAULT 0,
+        must_reset_password BOOLEAN DEFAULT FALSE,
+        reset_token TEXT,
+        reset_token_created_at TEXT,
+        salt TEXT NOT NULL
+    )
+    ''')
+    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS customer (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        lastname TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        user_id INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES user (id)
+    )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+if __name__ == "__main__":
+    init_db()
+    print("Database initialized.")
