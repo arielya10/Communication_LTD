@@ -72,6 +72,9 @@ def login():
 # Home page route (after successful login)
 @app.route('/home', methods=['GET', 'POST'])
 def home():
+     # Check if user logged in 
+    if session.get('user_id') is None:
+        return redirect(url_for('login'))
     if request.method == 'POST':
             # Change Password functionality
             current_password = request.form.get('current_password')
@@ -98,6 +101,7 @@ def home():
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
     if request.method == 'POST':
+        # Sanitize user inputs with escape
         id = escape(request.form.get('id'))
         name = escape(request.form.get('name'))
         lastname = escape(request.form.get('lastname'))
