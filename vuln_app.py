@@ -54,7 +54,7 @@ def login():
                 flash('Your account has been locked. Please reset your password.', 'danger')
                 return redirect(url_for('password_recovery'))
 
-            provided_password_hash, _ = hash_password_hmac(password, user['salt'])
+            provided_password_hash, _ = hash_password_hmac(password, bytes.fromhex(user['salt']))
             query = "SELECT * FROM user WHERE username = '{}' AND password = '{}'".format(username, provided_password_hash.hex())
             user = conn.execute(query).fetchone()
             if user:
@@ -74,6 +74,9 @@ def login():
 # Home page route (after successful login)
 @app.route('/home', methods=['GET', 'POST'])
 def home():
+     # Check if user logged in 
+    if session.get('user_id') is None:
+        return redirect(url_for('login'))
     if request.method == 'POST':
         current_password_input = request.form.get('current_password')
         new_password = request.form.get('new_password')
@@ -87,7 +90,7 @@ def home():
             return render_template('home.html')
         
         # Hash the input current password using the user's stored salt
-        current_password_hashed, _ = hash_password_hmac(current_password_input, user['salt'])
+        current_password_hashed, _ = hash_password_hmac(current_password_input, bytes.fromhex(user['salt']))
         
         if current_password_hashed.hex() != user['password']:
             flash('Incorrect current password.', 'danger')
@@ -97,7 +100,7 @@ def home():
         if not is_valid:
             flash(message, 'danger')
         else:
-            new_password_hashed, _ = hash_password_hmac(new_password, user['salt'])
+            new_password_hashed, _ = hash_password_hmac(new_password, bytes.fromhex(user['salt']))
             success, message = shift_previous_passwords(user_id, new_password_hashed.hex())
             if not success:
                 flash(message, 'danger')  
@@ -160,6 +163,7 @@ def logout():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        # Directly include user input in SQL statements
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
@@ -173,8 +177,14 @@ def register():
             return render_template('register.html')
 
         conn = get_db_connection()
-        existing_user = conn.execute('SELECT * FROM user WHERE username = ?', (username,)).fetchone()
-        existing_email = conn.execute('SELECT * FROM user WHERE email = ?', (email,)).fetchone()
+        
+        # Vulnerable SQL query examples
+        # code: Rourke'; DROP TABLE user; --
+        existing_user_query = f"SELECT * FROM user WHERE username = '{username}'"
+        existing_email_query = f"SELECT * FROM user WHERE email = '{email}'"
+
+        existing_user = conn.executescript(existing_user_query).fetchone()
+        existing_email = conn.executescript(existing_email_query).fetchone()
 
         if existing_user:
             flash('Username already taken. Please choose a different one.', 'danger')
@@ -193,8 +203,11 @@ def register():
             return render_template('register.html', username=username, email=email)
         
         hashed_password, salt = hash_password_hmac(password)
-        conn.execute('INSERT INTO user (username, email, password, salt) VALUES (?, ?, ?, ?)',
-                     (username, email, hashed_password.hex(), salt))
+        
+        # Vulnerable INSERT statement
+        insert_user_query = f"INSERT INTO user (username, email, password, salt) VALUES ('{username}', '{email}', '{hashed_password.hex()}', '{salt.hex()}')"
+        conn.execute(insert_user_query)
+        
         conn.commit()
         conn.close()
         flash('Your account has been created! You are now able to log in', 'success')
@@ -254,7 +267,7 @@ def password_recovery():
                 if not is_valid:
                     flash(message, 'danger')
                 else:
-                    new_password_hashed, _ = hash_password_hmac(new_password, user['salt'])
+                    new_password_hashed, _ = hash_password_hmac(new_password, bytes.fromhex(user['salt']))
                     success, message = shift_previous_passwords(user['id'], new_password.hex())
                     if not success:
                         flash(message, 'danger')  
