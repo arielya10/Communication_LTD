@@ -39,11 +39,11 @@ def login():
 
         # Query the user by username
         user = User.query.filter_by(username=username).first()
-        if user.login_attempts >= 3:
-            user.must_reset_password = True
-            flash('Your account has been locked. Please reset your password.', 'danger')
-            return redirect(url_for('password_recovery'))
         if user:
+            if user.login_attempts >= 3:
+                user.must_reset_password = True
+                flash('Your account has been locked. Please reset your password.', 'danger')
+                return redirect(url_for('password_recovery'))
             # Hash the provided password using the salt stored for this user
             provided_password_hash, _ = hash_password_hmac(password, bytes.fromhex(user.salt))
 
