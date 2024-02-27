@@ -75,11 +75,8 @@ def validate_email(email):
     return bool(re.match(email_regex_pattern, email))
 
 # Validate input
-def validate_input(id,name,lastname,email):
-    # ID validation
-    if not id.isdigit():
-        return False, 'Invalid ID format.'
-
+def validate_input(name,lastname,email):
+   
     # name validation 
     if not name.isalpha():
         return False, 'Invalid name format.'
