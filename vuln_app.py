@@ -40,6 +40,10 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        
+        if not username or not password:
+            flash('Both username and password are required', 'danger')
+            return render_template('login.html')
 
         conn = get_db_connection()
         # Vulnerable SQL query
