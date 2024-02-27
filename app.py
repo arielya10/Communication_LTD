@@ -119,6 +119,15 @@ def add_customer():
         email = request.form.get('email')
         user_id = session.get('user_id')
 
+        # Check if all fields are filled 
+        if not (name and lastname and email):
+            return jsonify({'status': 'error', 'message': 'All fields are required.'}), 400
+        
+        # Validate customer input
+        is_valid, error_message = validate_input(name, lastname, email)
+        if not is_valid:
+            return jsonify({'status': 'error', 'message': error_message}), 400
+
         conn = get_db_connection()
         # Check if the customer already exists in the database
         existing_customer = conn.execute('SELECT * FROM customer WHERE email = ?', (email,)).fetchone()
@@ -142,7 +151,7 @@ def search_customer():
         conn = get_db_connection()
         customers = conn.execute('SELECT * FROM customer WHERE user_id = ? AND (LOWER(name) = ? OR LOWER(lastname) = ?)', 
                                  (user_id, search_query, search_query)).fetchall()
-        customer_dicts = [{'id': c['id'], 'name': c['name'], 'lastname': c['lastname'], 'email': c['email']} for c in customers]
+        customer_dicts = [{'name': c['name'], 'lastname': c['lastname'], 'email': c['email']} for c in customers]
         conn.close()
         return jsonify(customer_dicts)
 
