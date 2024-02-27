@@ -59,10 +59,6 @@
                             <h3>Add Customer</h3>
                             <form id="addCustomerForm" method="post" class="needs-validation" novalidate="" autocomplete="off">
                                 <div class="mb-3">
-                                    <label for="id" class="form-label">Id</label>
-                                    <input id="id" type="text" class="form-control" name="id" required autofocus>
-                                </div>
-                                <div class="mb-3">
                                     <label for="name" class="form-label">Name</label>
                                     <input id="name" type="text" class="form-control" name="name" required>
                                 </div>
@@ -190,7 +186,7 @@
                     const thead = document.createElement('thead');
                     const trHead = document.createElement('tr');
                     
-                    const headers = ["Id", "Name", "Last Name", "Email"];
+                    const headers = ["Name", "Last Name", "Email"];
                     headers.forEach(headerText => {
                         const th = document.createElement('th');
                         th.textContent = headerText; 
@@ -203,7 +199,7 @@
                     const tbody = document.createElement('tbody');
                     data.forEach(customer => {
                         const tr = document.createElement('tr');
-                        appendTableCell(tr, customer.id);
+                        
                         appendTableCell(tr, customer.name);
                         appendTableCell(tr, customer.lastname);
                         appendTableCell(tr, customer.email);
