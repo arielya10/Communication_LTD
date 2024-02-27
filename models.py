@@ -1,11 +1,13 @@
+# Standard library imports
 import sqlite3
 
-
+# Define a function to get a database connection
 def get_db_connection():
     conn = sqlite3.connect('instance/site.db')
     conn.row_factory = sqlite3.Row  # This allows accessing columns by name
     return conn
 
+# Define a function to clear all data from the database
 def clear_all_data():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -18,10 +20,12 @@ def clear_all_data():
     conn.close()
     print("All data cleared.")
 
+# Define a function to initialize the database
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    # Create the user table
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS user (
         id INTEGER PRIMARY KEY,
@@ -39,6 +43,7 @@ def init_db():
     )
     ''')
     
+    # Create the customer table
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS customer (
         id INTEGER PRIMARY KEY,
@@ -52,6 +57,7 @@ def init_db():
     
     conn.commit()
     conn.close()
+
 
 if __name__ == "__main__":
     init_db()
