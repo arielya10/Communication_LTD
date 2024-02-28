@@ -145,6 +145,8 @@ def home():
 
         conn.close()
 
+    return render_template('home.html')
+
 # Add customer route from home page
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
@@ -168,8 +170,8 @@ def add_customer():
             return jsonify({'status': 'error', 'message': f'Customer with email {email} already exists.'}), 400
 
         # Insert the new customer record into the database
-        insert_customer_query = f"INSERT INTO customer (name, lastname, email, user_id) VALUES ('{name}', '{lastname}', '{email}', '{user_id}')"
-        conn.execute(insert_customer_query)
+        insert_customer_query = "INSERT INTO customer (name, lastname, email, user_id) VALUES (?, ?, ?, ?)"
+        conn.execute(insert_customer_query, (name, lastname, email, user_id))
         conn.commit()
         conn.close()
         return jsonify({'status': 'success', 'message': f'{name} {lastname} has been added successfully.'})
