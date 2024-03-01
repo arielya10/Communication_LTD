@@ -189,9 +189,13 @@ def search_customer():
         search_query = request.form.get('search_customer', '').strip().lower()
         conn = get_db_connection()
         
-        # Search for the customer in the database
-        customers = conn.execute('SELECT * FROM customer WHERE user_id = ? AND (LOWER(name) = ? OR LOWER(lastname) = ?)', 
+        # Search for the customer by name or lastname or return all customers
+        if search_query == '*':
+            customers = conn.execute('SELECT * FROM customer WHERE user_id = ?', (user_id,)).fetchall()
+        else:
+            customers = conn.execute('SELECT * FROM customer WHERE user_id = ? AND (LOWER(name) = ? OR LOWER(lastname) = ?)', 
                                  (user_id, search_query, search_query)).fetchall()
+            
         # Convert the customer records to a list of dictionaries
         customer_dicts = [{'name': c['name'], 'lastname': c['lastname'], 'email': c['email']} for c in customers]
         conn.close()
