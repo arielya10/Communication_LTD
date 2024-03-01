@@ -218,10 +218,13 @@
             });
         });
         
-        function appendTableCell(tr, text) {
+        function appendTableCell(tr, html) {
             const td = document.createElement('td');
-            td.textContent = text; 
+            td.innerHTML = html; // Vulnerable to stored XSS
+            //td.textContent = html; // Safe to stored XSS
             tr.appendChild(td);
+
+
         }
         </script>
 </body>
