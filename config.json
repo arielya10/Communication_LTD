@@ -13,6 +13,6 @@
     "MAIL_SERVER": "smtp-mail.outlook.com",
     "MAIL_PORT": 587,
     "MAIL_USE_TLS": true,
-    "MAIL_USERNAME": "communication.itd11@outlook.com",
-    "MAIL_PASSWORD": "Cyberproject11!"
+    "MAIL_USERNAME": "your_email@outlook.com",
+    "MAIL_PASSWORD": "your_password"
 }
