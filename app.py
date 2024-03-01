@@ -314,10 +314,14 @@ def password_recovery():
             # If the token is valid, redirect to the reset stage
             if user:
                 # Check if the token has expired
-                token_age = datetime.utcnow() - datetime.strptime(user['reset_token_created_at'], '%Y-%m-%d %H:%M:%S.%f')
+                token_creation_time = datetime.strptime(user['reset_token_created_at'], '%Y-%m-%d %H:%M:%S.%f')
+                token_age = datetime.utcnow() - token_creation_time
                 if token_age <= timedelta(minutes=5):
                     return redirect(url_for('password_recovery', stage='reset', email=email))
                 else:
+                     # Token has expired, invalidate the token
+                    conn.execute('UPDATE user SET reset_token = NULL, reset_token_created_at = NULL WHERE email = ?', (email,))
+                    conn.commit()
                     flash('Token has expired.', 'danger')
             else:
                 flash('Invalid token.', 'danger')
