@@ -16,7 +16,7 @@
 </p>
 <hr>
 <p align="center">
-  <img src="https://i.imgur.com/Oe8lWXh.png" />
+  <img src="https://i.imgur.com/Oe8lWXh.png" width="600"/>
 </p>
 
 ##  Quick Links
@@ -27,8 +27,7 @@
 > - [ Modules](#-modules)
 > - [ Getting Started](#-getting-started)
 >   - [ Installation](#-installation)
->   - [ Running Cyber-Project](#-running-Cyber-Project)
->   - [ Tests](#-tests)
+>   - [ Running Communication_LTD](#-running-Communication_LTD)
 > - [ Project Roadmap](#-project-roadmap)
 > - [ Contributing](#-contributing)
 > - [ License](#-license)
@@ -62,7 +61,7 @@ Communication_LTD is a flask-based cybersecurity application focusing on reliabl
 ##  Repository Structure
 
 ```sh
-└── Cyber-Project/
+└── Communication_LTD/
     ├── README.md
     ├── app.py
     ├── config.json
@@ -92,13 +91,13 @@ Communication_LTD is a flask-based cybersecurity application focusing on reliabl
 
 | File                                                                                        | Summary                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ---                                                                                         | ---                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| [rockyou.txt](https://github.com/arielya10/Cyber-Project/blob/master/rockyou.txt)           | The "rockyou.txt" file contains a list of these compromised passwords, which are often utilized by security professionals and hackers for password cracking and security testing purposes. The file serves as a cautionary reminder of the importance of strong, unique passwords and the risks associated with poor password management practices..                                                                                           |
-| [config.json](https://github.com/arielya10/Cyber-Project/blob/master/config.json)           | The config.json file in the Cyber-Project repository centrally defines the system's security policies such as password length, complexity rules, password history, and maximum login attempts — an important configuration asset. It also specifies the dictionary file for password validation, the secret key, and mail server settings for notifications.                                                                                             |
-| [app.py](https://github.com/arielya10/Cyber-Project/blob/master/app.py)                     | This app.py script initiates the main Flask application for the Cyber-Project repository. It imports necessary modules, loads configurations from a JSON file, applies them to the Flask app, and establishes email service through Flask-Mail. Furthermore, it sets a secret key for managing user sessions securely.                                                                                                                 |
-| [vuln_app.py](https://github.com/arielya10/Cyber-Project/blob/master/vuln_app.py)           | vulnerable version of the app. py, its vulnerable to SQL injection and stored XSS. The login page can be hacked by writing "username'-- -" In the login page. The registarion/add users pages can be hacked writing "email@gmail.com'; DROP TABLE customer; --".                                                                                                                 |
-| [functions.py](https://github.com/arielya10/Cyber-Project/blob/master/functions.py)         | This code snippet can be found in the functions.py file within the Cyber-Project repository. It includes vital functions for establishing a connection to the database and updating a user's password. Interacting with the SQLite database, these methods contribute to the overall user authentication and manage crucial password update operations.                                                                                                  |
-| [models.py](https://github.com/arielya10/Cyber-Project/blob/master/models.py)               | The models.py script in the Cyber-Project repository serves as the central database management module. The script is responsible for initializing the SQLite database, creating user and customer tables, establishing a database connection, and removing all data from the database. This underpins the data-oriented operations in the repository, setting up the necessary data schema, facilitating data interactions, and ensuring data integrity. |
-| [requirements.txt](https://github.com/arielya10/Cyber-Project/blob/master/requirements.txt) | The requirements.txt file lists all dependencies needed for the Cyber-Project. Besides the mandatory Flask modules, it includes packages for templating (Jinja2), SQL interfacing (SQLAlchemy), and sending emails (Flask-Mail). This ensures project portability and replicability across different environments.                                                                                                                                       |                                                                                                                           |
+| [rockyou.txt](https://github.com/arielya10/Communication_LTD/blob/master/rockyou.txt)           | The "rockyou.txt" file contains a list of these compromised passwords, which are often utilized by security professionals and hackers for password cracking and security testing purposes. The file serves as a cautionary reminder of the importance of strong, unique passwords and the risks associated with poor password management practices..                                                                                           |
+| [config.json](https://github.com/arielya10/Communication_LTD/blob/master/config.json)           | The config.json file in the Communication_LTD repository centrally defines the system's security policies such as password length, complexity rules, password history, and maximum login attempts — an important configuration asset. It also specifies the dictionary file for password validation, the secret key, and mail server settings for notifications.                                                                                             |
+| [app.py](https://github.com/arielya10/Communication_LTD/blob/master/app.py)                     | This app.py script initiates the main Flask application for the Communication_LTD repository. It imports necessary modules, loads configurations from a JSON file, applies them to the Flask app, and establishes email service through Flask-Mail. Furthermore, it sets a secret key for managing user sessions securely.                                                                                                                 |
+| [vuln_app.py](https://github.com/arielya10/Communication_LTD/blob/master/vuln_app.py)           | vulnerable version of the app. py, its vulnerable to SQL injection and stored XSS. The login page can be hacked by writing "username'-- -" In the login page. The registarion/add users pages can be hacked writing "email@gmail.com'; DROP TABLE customer; --".                                                                                                                 |
+| [functions.py](https://github.com/arielya10/Communication_LTD/blob/master/functions.py)         | This code snippet can be found in the functions.py file within the Communication_LTD repository. It includes vital functions for establishing a connection to the database and updating a user's password. Interacting with the SQLite database, these methods contribute to the overall user authentication and manage crucial password update operations.                                                                                                  |
+| [models.py](https://github.com/arielya10/Communication_LTD/blob/master/models.py)               | The models.py script in the Communication_LTD repository serves as the central database management module. The script is responsible for initializing the SQLite database, creating user and customer tables, establishing a database connection, and removing all data from the database. This underpins the data-oriented operations in the repository, setting up the necessary data schema, facilitating data interactions, and ensuring data integrity. |
+| [requirements.txt](https://github.com/arielya10/Communication_LTD/blob/master/requirements.txt) | The requirements.txt file lists all dependencies needed for the Communication_LTD. Besides the mandatory Flask modules, it includes packages for templating (Jinja2), SQL interfacing (SQLAlchemy), and sending emails (Flask-Mail). This ensures project portability and replicability across different environments.                                                                                                                                       |                                                                                                                           |
 
 </details>
 
@@ -106,10 +105,10 @@ Communication_LTD is a flask-based cybersecurity application focusing on reliabl
 
 | File                                                                                                              | Summary                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ---                                                                                                               | ---                                                                                                                                                                                                                                                                                                                                                                                                      |
-| [password_recovery.html](https://github.com/arielya10/Cyber-Project/blob/master/templates/password_recovery.html) | The password_recovery.html is a part of the Cyber-Project repository acting as the user interface for the password recovery feature. It uses BootStrap for design standardization. It displays the company logo and creates the structure for the password recovery form. The final result is communicating with other parts of the infrastructure to confirm/user's identity and reset their passwords. |
-| [login.html](https://github.com/arielya10/Cyber-Project/blob/master/templates/login.html)                         | The login.html is part of the templates directory in the Cyber-Project repository. It defines the structure and appearance of the user login page for the application Communication_LTD. Additionally, it provides responsive design for different screen sizes, integrates Bootstrap for UI styling, and includes images from the static directory for branding elements.                               |
-| [register.html](https://github.com/arielya10/Cyber-Project/blob/master/templates/register.html)                   | The register.html file provides the interface for user registration in the Cyber-Project platform. It incorporates visual elements, user form inputs, and applies Bootstrap for a responsive layout. It also enables dynamic linking to static assets like the website's favicon and logo.                                                                                                               |
-| [home.html](https://github.com/arielya10/Cyber-Project/blob/master/templates/home.html)                           | The code in templates/home.html constitutes the repository's homepage user interface for Communication_LTD. It uses Bootstrap for styling and allows displaying the site's logo, title, and welcome message. It also includes a responsive design for optimal viewing across different device screens.                                                                                                   |
+| [password_recovery.html](https://github.com/arielya10/Communication_LTD/blob/master/templates/password_recovery.html) | The password_recovery.html is a part of the Communication_LTD repository acting as the user interface for the password recovery feature. It uses BootStrap for design standardization. It displays the company logo and creates the structure for the password recovery form. The final result is communicating with other parts of the infrastructure to confirm/user's identity and reset their passwords. |
+| [login.html](https://github.com/arielya10/Communication_LTD/blob/master/templates/login.html)                         | The login.html is part of the templates directory in the Communication_LTD repository. It defines the structure and appearance of the user login page for the application Communication_LTD. Additionally, it provides responsive design for different screen sizes, integrates Bootstrap for UI styling, and includes images from the static directory for branding elements.                               |
+| [register.html](https://github.com/arielya10/Communication_LTD/blob/master/templates/register.html)                   | The register.html file provides the interface for user registration in the Communication_LTD platform. It incorporates visual elements, user form inputs, and applies Bootstrap for a responsive layout. It also enables dynamic linking to static assets like the website's favicon and logo.                                                                                                               |
+| [home.html](https://github.com/arielya10/Communication_LTD/blob/master/templates/home.html)                           | The code in templates/home.html constitutes the repository's homepage user interface for Communication_LTD. It uses Bootstrap for styling and allows displaying the site's logo, title, and welcome message. It also includes a responsive design for optimal viewing across different device screens.                                                                                                   |
 
 </details>
 
@@ -121,62 +120,62 @@ Communication_LTD is a flask-based cybersecurity application focusing on reliabl
 
 Ensure you have the following dependencies installed on your system:
 
-* **HTML**: `version x.y.z`
-* **Python**: `version x.y.z`
+* **Python**
 
 ###  Installation
 
-1. Clone the Cyber-Project repository:
+1. Clone the Communication_LTD repository:
 
 ```sh
-git clone https://github.com/arielya10/Cyber-Project
+git clone https://github.com/arielya10/Communication_LTD
 ```
 
 2. Change to the project directory:
 
 ```sh
-cd Cyber-Project
+cd Communication_LTD
 ```
 
-3. Install the dependencies:
+3. Create virtual environment:
 
 ```sh
-> pip install -r requirements.txt
+python -m venv venv
 ```
-
-###  Running Cyber-Project
-
-Use the following command to run Cyber-Project:
+4. Activate the virtual environment:
 
 ```sh
-> INSERT-RUN-COMMANDS
+venv\Scripts\activate.bat
 ```
 
-###  Tests
-
-To execute tests, run:
+5. Install the dependencies:
 
 ```sh
-> INSERT-TEST-COMMANDS
+pip install -r requirements.txt
 ```
+
+###  Running Communication_LTD
+
+Use the following command to run Communication_LTD:
+
+```sh
+python app.py
+```
+Once the application is running, navigate to http://127.0.0.1:5000 in your web browser to start using the application.
+
 
 ---
 
-##  Project Roadmap
 
-- [X] `► INSERT-TASK-1`
-- [ ] `► INSERT-TASK-2`
-- [ ] `► ...`
 
----
+
 
 ##  Contributing
 
 Contributions are welcome! Here are several ways you can contribute:
 
-- **[Submit Pull Requests](https://github.com/arielya10/Cyber-Project/blob/main/CONTRIBUTING.md)**: Review open PRs, and submit your own PRs.
-- **[Join the Discussions](https://github.com/arielya10/Cyber-Project/discussions)**: Share your insights, provide feedback, or ask questions.
-- **[Report Issues](https://github.com/arielya10/Cyber-Project/issues)**: Submit bugs found or log feature requests for Cyber-project.
+- **[Submit Pull Requests](https://github.com/arielya10/Communication_LTD/blob/main/CONTRIBUTING.md)**: Review open PRs, and submit your own PRs.
+- **[Join the Discussions](https://github.com/arielya10/Communication_LTD/discussions)**: Share your insights, provide feedback, or ask questions.
+- **[Report Issues](https://github.com/arielya10/Communication_LTD/issues)**: Submit bugs found or log feature requests for Communication_LTD.
 
 <details closed>
     <summary>Contributing Guidelines</summary>
@@ -184,7 +183,7 @@ Contributions are welcome! Here are several ways you can contribute:
 1. **Fork the Repository**: Start by forking the project repository to your GitHub account.
 2. **Clone Locally**: Clone the forked repository to your local machine using a Git client.
    ```sh
-   git clone https://github.com/arielya10/Cyber-Project
+   git clone https://github.com/arielya10Communication_LTD
    ```
 3. **Create a New Branch**: Always work on a new branch, giving it a descriptive name.
    ```sh
