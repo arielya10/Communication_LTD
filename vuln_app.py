@@ -163,7 +163,7 @@ def add_customer():
         # For exmaple, if the email is "email@gmail.com'; DROP TABLE customer; --" the query will delete the customer table
         existing_customer_query = f"SELECT * FROM customer WHERE email = '{email}'"
         # Fetch the customer record by email
-        existing_customer = conn.execute(existing_customer_query).fetchone()
+        existing_customer = conn.executescript(existing_customer_query).fetchone()
         # Check if the customer already exists
         if existing_customer:
             conn.close()
