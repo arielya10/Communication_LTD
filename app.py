@@ -279,6 +279,10 @@ def password_recovery():
         # Retrieve the email from the form data
         email = request.form.get('email', email)
 
+        if not validate_email(email):
+            flash('Invalid email format.', 'danger')
+            return redirect(url_for('password_recovery'))
+
         conn = get_db_connection()
 
         # If the stage is 'request', send the password reset token to the user's email
